@@ -71,7 +71,7 @@ void main() {
   });
 
   test(
-    'migrates telemetry, outbox, and content metadata from v1 to v3',
+    'migrates telemetry, content metadata, and skipped answers from v1 to v4',
     () async {
       final databasePath = _databasePath(temporaryDirectory);
       final legacyDatabase = await databaseFactoryFfi.openDatabase(
@@ -89,6 +89,20 @@ void main() {
             CREATE TABLE questions (
               id TEXT PRIMARY KEY,
               pack_id TEXT NOT NULL
+            )
+          ''');
+            await database.execute('''
+            CREATE TABLE user_answers (
+              session_id TEXT NOT NULL,
+              question_id TEXT NOT NULL,
+              position INTEGER NOT NULL,
+              selected_option_id TEXT NOT NULL,
+              correct_option_id TEXT NOT NULL,
+              is_correct INTEGER NOT NULL,
+              time_spent_ms INTEGER NOT NULL,
+              changed_answer INTEGER NOT NULL DEFAULT 0,
+              answered_at TEXT NOT NULL,
+              PRIMARY KEY (session_id, question_id)
             )
           ''');
             await database.insert('question_packs', {
@@ -114,7 +128,7 @@ void main() {
       );
       final tableNames = tables.map((row) => row['name']).toSet();
 
-      expect(await opened.getVersion(), 3);
+      expect(await opened.getVersion(), ExamCoachDatabase.schemaVersion);
       expect(tableNames, contains('legacy_marker'));
       expect(tableNames, contains('analytics_events'));
       expect(tableNames, contains('sync_outbox'));
@@ -123,6 +137,9 @@ void main() {
       );
       final questionColumns = await opened.rawQuery(
         'PRAGMA table_info(questions)',
+      );
+      final answerColumns = await opened.rawQuery(
+        'PRAGMA table_info(user_answers)',
       );
       expect(
         packColumns.map((column) => column['name']),
@@ -140,6 +157,10 @@ void main() {
       expect(
         questionColumns.map((column) => column['name']),
         containsAll({'author', 'reviewer'}),
+      );
+      expect(
+        answerColumns.map((column) => column['name']),
+        contains('is_skipped'),
       );
       final migratedPack = await opened.query('question_packs');
       expect(migratedPack.single['author'], 'examcoach_development_team');
@@ -231,6 +252,19 @@ void main() {
         cubit.selectOption('a');
         await cubit.submitCurrentAnswer(timeSpent: const Duration(seconds: 30));
       }
+      expect(cubit.state.status, LearningFlowStatus.reviewing);
+
+      await cubit.close();
+      await harness.database.close();
+
+      harness = await _openHarness(databasePath);
+      cubit = _createCubit(harness);
+      await cubit.restore();
+
+      expect(cubit.state.status, LearningFlowStatus.reviewing);
+      expect(cubit.state.currentIndex, 6);
+      expect(cubit.state.currentAnswers, hasLength(6));
+      expect(await cubit.completeCurrentSession(), isTrue);
       expect(cubit.state.status, LearningFlowStatus.result);
 
       final pending = await harness.persistence.getPending();
@@ -270,6 +304,98 @@ void main() {
       expect(cubit.state.profiles, hasLength(3));
       expect(cubit.state.recommendation, isNotNull);
       expect(await harness.persistence.getPending(), hasLength(7));
+    },
+  );
+
+  test('expires an inactive session durably after 24 hours', () async {
+    final databasePath = _databasePath(temporaryDirectory);
+    var currentTime = DateTime.utc(2026, 9, 6, 8);
+    final analytics = InMemoryAnalytics();
+    var harness = await _openHarness(databasePath);
+    var cubit = _createCubit(
+      harness,
+      now: () => currentTime,
+      analytics: analytics,
+    );
+
+    await cubit.startTryout();
+    await cubit.skipCurrentQuestion(timeSpent: const Duration(seconds: 4));
+    final sessionId = cubit.state.session!.id;
+    await cubit.close();
+    await harness.database.close();
+
+    currentTime = currentTime.add(const Duration(hours: 25));
+    harness = await _openHarness(databasePath);
+    cubit = _createCubit(harness, now: () => currentTime, analytics: analytics);
+    addTearDown(cubit.close);
+    addTearDown(harness.database.close);
+    await cubit.restore();
+
+    expect(cubit.state.status, LearningFlowStatus.idle);
+    expect(cubit.state.hasActiveSession, isFalse);
+    expect(cubit.state.answerHistory, isEmpty);
+    expect(cubit.state.errorMessage, contains('kedaluwarsa'));
+
+    final database = await harness.database.instance;
+    final sessionRows = await database.query(
+      'exam_sessions',
+      where: 'id = ?',
+      whereArgs: [sessionId],
+    );
+    expect(sessionRows.single['status'], 'expired');
+    expect(sessionRows.single['ended_at'], isNotNull);
+    expect(
+      (await harness.persistence.getPending()).map((item) => item.operationId),
+      contains('$sessionId:expired'),
+    );
+    expect(
+      analytics.events.map((event) => event.name),
+      contains(AnalyticsEvents.practiceExpired),
+    );
+  });
+
+  test(
+    'cancels a partial session without adding it to learning history',
+    () async {
+      final harness = await _openHarness(_databasePath(temporaryDirectory));
+      final analytics = InMemoryAnalytics();
+      final cubit = _createCubit(harness, analytics: analytics);
+      addTearDown(cubit.close);
+      addTearDown(harness.database.close);
+
+      await cubit.startTryout();
+      await cubit.skipCurrentQuestion(timeSpent: const Duration(seconds: 3));
+      final sessionId = cubit.state.session!.id;
+      expect(await cubit.cancelSession(), isTrue);
+
+      final database = await harness.database.instance;
+      final sessionRows = await database.query(
+        'exam_sessions',
+        where: 'id = ?',
+        whereArgs: [sessionId],
+      );
+      final answerRows = await database.query(
+        'user_answers',
+        where: 'session_id = ?',
+        whereArgs: [sessionId],
+      );
+      final snapshot = await harness.persistence.loadSnapshot();
+
+      expect(sessionRows.single['status'], 'cancelled');
+      expect(sessionRows.single['ended_at'], isNotNull);
+      expect(answerRows.single['is_skipped'], 1);
+      expect(snapshot.activeSession, isNull);
+      expect(snapshot.answerHistory, isEmpty);
+      expect(
+        (await harness.persistence.getPending()).map(
+          (item) => item.operationId,
+        ),
+        contains('$sessionId:cancelled'),
+      );
+      expect(
+        analytics.events.map((event) => event.name),
+        contains(AnalyticsEvents.practiceCancelled),
+      );
     },
   );
 
@@ -339,7 +465,11 @@ Future<_PersistenceHarness> _openHarness(
   );
 }
 
-LearningFlowCubit _createCubit(_PersistenceHarness harness) {
+LearningFlowCubit _createCubit(
+  _PersistenceHarness harness, {
+  UtcNow? now,
+  AnalyticsTracker? analytics,
+}) {
   return LearningFlowCubit(
     questionRepository: harness.questions,
     scoringEngine: const ScoringEngine(),
@@ -347,7 +477,8 @@ LearningFlowCubit _createCubit(_PersistenceHarness harness) {
     recommendationEngine: const RecommendationEngine(),
     adaptiveDrillEngine: const AdaptiveDrillEngine(),
     persistenceRepository: harness.persistence,
-    analytics: InMemoryAnalytics(),
+    analytics: analytics ?? InMemoryAnalytics(),
+    now: now,
   );
 }
 

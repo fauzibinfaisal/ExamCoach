@@ -5,7 +5,7 @@ class ExamCoachDatabase {
   ExamCoachDatabase({required this.databasePath, DatabaseFactory? factory})
     : _factory = factory ?? databaseFactory;
 
-  static const schemaVersion = 3;
+  static const schemaVersion = 4;
   static const fileName = 'exam_coach.sqlite';
 
   final String databasePath;
@@ -131,6 +131,7 @@ class ExamCoachDatabase {
           selected_option_id TEXT NOT NULL,
           correct_option_id TEXT NOT NULL,
           is_correct INTEGER NOT NULL,
+          is_skipped INTEGER NOT NULL DEFAULT 0,
           time_spent_ms INTEGER NOT NULL,
           changed_answer INTEGER NOT NULL DEFAULT 0,
           answered_at TEXT NOT NULL,
@@ -204,11 +205,23 @@ class ExamCoachDatabase {
       await database.transaction(_migrateContentMetadataV3);
       migratedVersion = 3;
     }
+    if (migratedVersion < 4 && newVersion >= 4) {
+      await database.transaction(_migrateSessionControlsV4);
+      migratedVersion = 4;
+    }
     if (migratedVersion != newVersion) {
       throw StateError(
         'Missing migration from schema $migratedVersion to $newVersion',
       );
     }
+  }
+
+  static Future<void> _migrateSessionControlsV4(
+    DatabaseExecutor executor,
+  ) async {
+    await executor.execute(
+      'ALTER TABLE user_answers ADD COLUMN is_skipped INTEGER NOT NULL DEFAULT 0',
+    );
   }
 
   static Future<void> _migrateContentMetadataV3(

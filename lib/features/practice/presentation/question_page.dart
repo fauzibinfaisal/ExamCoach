@@ -2,6 +2,7 @@ import 'package:exam_coach/features/exam/domain/models/exam_session.dart';
 import 'package:exam_coach/features/exam/domain/models/question.dart';
 import 'package:exam_coach/features/learning/application/learning_flow_cubit.dart';
 import 'package:exam_coach/features/learning/application/learning_flow_state.dart';
+import 'package:exam_coach/features/practice/presentation/session_cancel_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +14,11 @@ class QuestionPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          confirmAndCancelSession(context);
+        }
+      },
       child: BlocBuilder<LearningFlowCubit, LearningFlowState>(
         builder: (context, state) {
           final question = state.currentQuestion;
@@ -29,6 +35,13 @@ class QuestionPage extends StatelessWidget {
           return Scaffold(
             appBar: AppBar(
               automaticallyImplyLeading: false,
+              leading: IconButton(
+                tooltip: 'Batalkan sesi',
+                onPressed: state.isSaving
+                    ? null
+                    : () => confirmAndCancelSession(context),
+                icon: const Icon(Icons.close_rounded),
+              ),
               title: Text(
                 modeLabel,
                 style: const TextStyle(
@@ -104,26 +117,71 @@ class QuestionPage extends StatelessWidget {
                       color: Colors.white,
                       border: Border(top: BorderSide(color: Color(0xFFE1E8ED))),
                     ),
-                    child: FilledButton(
-                      key: const Key('submit-answer-button'),
-                      onPressed:
-                          state.selectedOptionId == null || state.isSaving
-                          ? null
-                          : () async {
-                              final completed = await context
-                                  .read<LearningFlowCubit>()
-                                  .submitCurrentAnswer();
-                              if (completed && context.mounted) {
-                                context.go('/result');
-                              }
-                            },
-                      child: Text(
-                        state.isSaving
-                            ? 'Menyimpan…'
-                            : state.isLastQuestion
-                            ? 'Lihat hasil'
-                            : 'Lanjut',
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                key: const Key('previous-question-button'),
+                                onPressed:
+                                    state.currentIndex == 0 || state.isSaving
+                                    ? null
+                                    : () => context
+                                          .read<LearningFlowCubit>()
+                                          .goToQuestion(state.currentIndex - 1),
+                                icon: const Icon(Icons.arrow_back_rounded),
+                                label: const Text('Sebelumnya'),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: TextButton.icon(
+                                key: const Key('skip-question-button'),
+                                onPressed: state.isSaving
+                                    ? null
+                                    : () async {
+                                        final ready = await context
+                                            .read<LearningFlowCubit>()
+                                            .skipCurrentQuestion();
+                                        if (ready && context.mounted) {
+                                          context.go('/session-review');
+                                        }
+                                      },
+                                icon: const Icon(Icons.fast_forward_rounded),
+                                label: const Text('Lewati'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            key: const Key('submit-answer-button'),
+                            onPressed:
+                                state.selectedOptionId == null || state.isSaving
+                                ? null
+                                : () async {
+                                    final ready = await context
+                                        .read<LearningFlowCubit>()
+                                        .submitCurrentAnswer();
+                                    if (ready && context.mounted) {
+                                      context.go('/session-review');
+                                    }
+                                  },
+                            child: Text(
+                              state.isSaving
+                                  ? 'Menyimpan…'
+                                  : state.currentAnswers.length >=
+                                        state.questions.length - 1
+                                  ? 'Simpan & periksa'
+                                  : 'Simpan & lanjut',
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

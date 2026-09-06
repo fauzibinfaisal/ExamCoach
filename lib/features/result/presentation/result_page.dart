@@ -54,6 +54,13 @@ class ResultPage extends StatelessWidget {
                   correct: score.correct,
                   total: score.total,
                 ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  key: const Key('review-answers-button'),
+                  onPressed: () => context.go('/answer-review'),
+                  icon: const Icon(Icons.fact_check_outlined),
+                  label: const Text('Tinjau jawaban & pembahasan'),
+                ),
                 const SizedBox(height: 26),
                 Text(
                   'Analisis area belajar',

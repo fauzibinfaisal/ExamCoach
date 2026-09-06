@@ -14,11 +14,12 @@ The database is opened through `ExamCoachDatabase`, which accepts a `DatabaseFac
 
 ## Schema Version
 
-Current schema: `3`.
+Current schema: `4`.
 
 - Version 1: question packs, questions, exam sessions, user answers, weakness profiles, and recommendations.
 - Version 2: durable analytics events and the idempotent sync outbox.
 - Version 3: question-pack title, immutable tryout selection, AI generator metadata, author, and reviewer audit fields.
+- Version 4: explicit skipped-answer state for resumable response editing and review.
 
 Unknown migrations and database downgrades fail explicitly instead of silently rebuilding or deleting user data.
 
@@ -38,7 +39,9 @@ The local prototype pack is seeded once and remains `draft`. Versioned external-
 - `weakness_profiles`
 - `recommendations`
 
-Only one active session is expected. Starting another session marks an older active session as cancelled. Each accepted answer and the session cursor are committed in one transaction before the UI advances.
+Only one active session is expected. Starting another session marks an older active session as cancelled. Each answer or explicit skip and the session cursor are committed in one transaction before the UI advances. Response edits replace the same answer row, retain a sticky changed-answer flag, and accumulate time spent.
+
+Cancelled and expired sessions remain stored for audit and future sync, but only completed-session answers contribute to history, scores, weakness profiles, and recommendations. Active sessions expire during recovery after more than 24 hours of inactivity.
 
 ### Delivery
 
@@ -50,11 +53,14 @@ Analytics creation writes the event and its outbox operation in one transaction.
 ```text
 <sessionId>:start
 <sessionId>:answer:<questionId>
+<sessionId>:progress
+<sessionId>:cancelled
+<sessionId>:expired
 <sessionId>:complete
 analytics:<eventId>
 ```
 
-The outbox primary key makes retries idempotent. Failed attempts retain the operation, increment `attempts`, and record `last_error`. A successful analytics upload marks both the outbox operation and source analytics event as synced.
+The outbox primary key makes retries idempotent. Answer and progress payloads replace their pending operation with the newest local version when edited. Failed attempts retain the operation, increment `attempts`, and record `last_error`. A successful analytics upload marks both the outbox operation and source analytics event as synced.
 
 ## Recovery Flow
 
@@ -68,7 +74,10 @@ Application bootstrap
   → Find active session
       → Resolve its stable question IDs
       → Restore submitted answers and current index
-      → Show “Lanjutkan sesi” on Home
+      → If all responses exist, restore pre-submit review
+      → Otherwise restore the exact saved question
+      → If inactive for more than 24 hours, persist expiry and return Home
+      → Show “Lanjutkan sesi” on Home for a recoverable active session
 ```
 
 If an active session references unavailable questions, the application does not guess or remap content. It returns to Home with a recovery error.
@@ -79,6 +88,8 @@ If database bootstrap itself fails, the application reports a Flutter error and 
 
 - Start session + start outbox operation.
 - Answer upsert + session cursor/version update + answer outbox operation.
+- Review/edit cursor update + replaceable progress outbox operation.
+- Cancellation or expiry + terminal-status outbox operation.
 - Session completion + profile upserts + recommendation insert + completion outbox operation.
 - Analytics event + analytics outbox operation.
 - Mark analytics synced + update source event status.
@@ -88,11 +99,14 @@ If database bootstrap itself fails, the application reports a Flutter error and 
 The integration suite uses temporary SQLite files and verifies:
 
 - schema creation and question-pack persistence;
-- migration from schema v1 through v2 to v3;
+- migration from schema v1 through v2, v3, and v4;
 - generated-pack metadata import, activation, and idempotent reload;
 - answer-by-answer persistence;
 - database close and reopen during an active tryout;
 - restoration at the exact next question;
+- restoration directly into pre-submit review after all responses are saved;
+- nullable skipped-answer round-trip and answer-change behavior;
+- durable cancellation and 24-hour expiry with completed-history isolation;
 - completed score, history, weakness, and recommendation restoration;
 - idempotent outbox insertion;
 - failed-attempt metadata and successful sync state;

@@ -1,5 +1,67 @@
 # Decision Log
 
+## DEC-006 — Review-Gated, Resumable Session Lifecycle
+
+Date: 2026-09-06
+
+Status:
+- Accepted
+
+Context:
+
+The sequential prototype scored immediately after the sixth answer and could
+only recover the next unanswered question. The product now needs explicit skip,
+answer revision, cancellation, abandoned-session handling, and post-result
+review while preserving offline durability and deterministic scoring.
+
+Decision:
+
+Model a skip as a durable nullable answer-domain state, require every question
+to have an answer-or-skip record before entering a pre-submit review state, and
+calculate the result only after explicit completion. Persist edits with a sticky
+changed-answer flag and replaceable idempotent outbox payload. Persist cancelled
+and expired sessions as terminal records but exclude their answers from learning
+history. Expire active sessions after a provisional 24 hours of inactivity at
+recovery. Route explanation visibility through `QuestionReviewAccessPolicy`.
+
+Reason:
+
+- Explicit completion prevents an accidental last tap from finalizing a tryout.
+- Durable skip/edit state makes interruption and recovery predictable.
+- Retaining terminal sessions supports future audit and cross-device sync while
+  protecting weakness/recommendation calculations from partial data.
+- A policy boundary supports future entitlements without coupling monetization
+  to scoring, persistence, or result rendering.
+
+Alternatives Considered:
+
+- Score automatically after the final response: rejected because it removes the
+  opportunity to inspect skips and revise mistakes before submission.
+- Delete cancelled or expired sessions: rejected because it loses audit and
+  future synchronization context.
+- Count partial responses in history: rejected because unfinished sessions can
+  distort weakness and recommendation evidence.
+- Implement subscription tiers now: rejected because pricing and trusted remote
+  entitlement validation are not yet implemented.
+
+Impact:
+
+- SQLite schema v4 stores explicit skipped state.
+- Session orchestration now has `idle`, `answering`, `reviewing`, and `result`
+  states.
+- A 24-hour expiry is an explicitly provisional local product default.
+- Sync must preserve latest-write answer/progress semantics and terminal session
+  outcomes.
+- The development build exposes all draft explanations; production entitlement
+  policy remains future work.
+
+Related Documents:
+
+- `docs/product/PRD.md`
+- `docs/engineering/Analytics_Event_Map.md`
+- `docs/engineering/Local_Persistence_Design.md`
+- `docs/engineering/Session_Controls_and_Review.md`
+
 ## DEC-001 — Local Deterministic Vertical Slice First
 
 Date: 2026-09-05

@@ -7,7 +7,7 @@ class AnswerEvaluation {
   });
 
   final String questionId;
-  final String selectedOptionId;
+  final String? selectedOptionId;
   final String correctOptionId;
   final bool isCorrect;
 }
