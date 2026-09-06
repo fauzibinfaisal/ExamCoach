@@ -90,6 +90,7 @@ the deterministic offline learning loop.
   skip→edit→review→result→explanation→drill verified.
 - `flutter build apk --debug` — PASS.
 - `flutter build ios --debug --no-codesign` — PASS.
+- GitHub pull request #3 — MERGED into `develop`; `main` unchanged.
 
 ### Result
 

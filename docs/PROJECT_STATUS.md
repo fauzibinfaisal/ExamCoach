@@ -83,7 +83,7 @@ Current position: **Step 7 of 12 complete**. Integration target is `develop`;
 
 ## Currently Working On
 
-No implementation is in progress. Step 7 is closed and validated; the short-lived feature branch is ready for integration into `develop`.
+No implementation is in progress. Step 7 is closed, validated, and integrated into `develop` through GitHub pull request #3. `main` remains unchanged.
 
 ## Next Steps
 
@@ -216,6 +216,7 @@ No implementation is in progress. Step 7 is closed and validated; the short-live
 - 2026-09-06: `flutter test` — PASS; 27 tests passed, including skip/edit/cancel/expiry/review and SQLite v1→v4 migration.
 - 2026-09-06: `flutter build apk --debug` — PASS; latest installable debug APK created.
 - 2026-09-06: `flutter build ios --debug --no-codesign` — PASS; latest unsigned `Runner.app` created.
+- 2026-09-06: Git Flow integration — PASS; pull request #3 merged Step 7 into `develop`, the feature branch was removed, and `main` remained unchanged.
 
 ## Documentation Updated
 
