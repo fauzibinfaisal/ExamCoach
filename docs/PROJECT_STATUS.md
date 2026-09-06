@@ -128,9 +128,9 @@ Current position: **Step 9 of 12 complete (75%)**. Integration target is `develo
 
 ## Currently Working On
 
-No implementation is in progress. Step 9 is closed and validated for integration
-into `develop`. No content was self-approved or published; `main` remains
-unchanged.
+No implementation is in progress. Step 9 is closed and integrated into
+`develop` through pull requests #7 and #8. No content was self-approved or
+published; `main` remains unchanged.
 
 ## Next Steps
 
@@ -352,6 +352,10 @@ unchanged.
   `c62ecec556f9eafefeab422bba082c805ff1876aa2831a1fa91dd4b9f4d13637`).
 - 2026-09-06: `flutter build ios --debug --no-codesign` — PASS; unsigned
   `Runner.app` embeds version `0.9.0`, build `9`.
+- 2026-09-07: Git Flow integration — PASS; pull request #7 merged the Step 9
+  review/publication capability and pull request #8 restored the separately
+  verified CLI file omitted from the first integration commit. Both merged into
+  `develop`; `main` remained unchanged.
 
 ## Documentation Updated
 
@@ -368,6 +372,8 @@ unchanged.
   updated question-pack lifecycle schema, content SOP, AI workflow, CMS,
   persistence schema v6, ERD, versioning, contributor, decision, and
   implementation records.
+- 2026-09-07: Recorded successful Step 9 integration through pull requests #7
+  and #8 and confirmed Step 10 as the next milestone.
 
 ## Notes For Next AI Session
 

@@ -88,6 +88,10 @@ changes to rewrite accepted content or identifiers.
   `c62ecec556f9eafefeab422bba082c805ff1876aa2831a1fa91dd4b9f4d13637`.
 - `flutter build ios --debug --no-codesign` — PASS; version `0.9.0`, build
   `9`.
+- GitHub pull request #7 — MERGED into `develop`; main capability and tests.
+- GitHub pull request #8 — MERGED into `develop`; separately verified CLI
+  correction after the file was omitted from the first integration commit.
+- `main` remained unchanged.
 
 ### Result
 
