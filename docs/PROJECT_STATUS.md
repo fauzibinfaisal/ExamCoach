@@ -38,6 +38,9 @@ Question packs, active sessions, answers, results, weakness profiles, recommenda
 - Added integration coverage using real temporary SQLite files.
 - Produced Android and unsigned iOS debug builds with the native SQLite plugin.
 - Initialized Git on `main` and published the project to `https://github.com/fauzibinfaisal/ExamCoach.git`.
+- Established `develop` as the default integration branch with standard Git Flow branch prefixes.
+- Protected `main` and `develop` with pull-request, resolved-conversation, no-force-push, and no-deletion rules.
+- Added the contributor workflow, Git Flow engineering guide, and pull request template.
 
 ## Currently Working On
 
@@ -54,7 +57,7 @@ No implementation is in progress. The offline persistence milestone is closed an
 7. Add retention/pruning for completed sessions, synced analytics, and synced outbox records.
 8. Route the prototype content through human review and publish only a validated pack.
 9. Confirm final Android/iOS application identifiers before release configuration.
-10. Add CI for formatting, static analysis, tests, and mobile build smoke checks, then configure branch protection for `main`.
+10. Add CI for formatting, static analysis, tests, and mobile build smoke checks, then make those checks required on `main` and `develop`.
 
 ## Blockers
 
@@ -83,7 +86,8 @@ No implementation is in progress. The offline persistence milestone is closed an
 - Learning mutations and their outbox entries share transaction boundaries.
 - Stable operation IDs make outbox retries idempotent.
 - Analytics failures never block scoring or progression; successful local analytics writes are durable and queued.
-- `main` is the primary branch and `origin` points to `https://github.com/fauzibinfaisal/ExamCoach.git`.
+- `main` is the release branch, `develop` is the default integration branch, and `origin` points to `https://github.com/fauzibinfaisal/ExamCoach.git`.
+- Normal implementation uses `feature/*` or `bugfix/*` from `develop`; releases and production fixes use `release/*` and `hotfix/*` respectively.
 - Weakness v1 uses configurable 65% accuracy, 20% speed, and 15% difficulty-handling weights, with two samples required for weak classification and five for full confidence.
 - Adaptive drill v1 uses largest-remainder allocation for the configurable 70/20/10 policy and prioritizes unseen questions within each tier.
 
@@ -114,9 +118,12 @@ No implementation is in progress. The offline persistence milestone is closed an
 - `test/persistence/local_persistence_integration_test.dart`
 - `ios/Podfile.lock`
 - `docs/engineering/Local_Persistence_Design.md`
+- `docs/engineering/Git_Workflow.md`
 - `docs/PROJECT_STATUS.md`
 - `docs/IMPLEMENTATION_LOG.md`
 - `docs/DECISION_LOG.md`
+- `CONTRIBUTING.md`
+- `.github/pull_request_template.md`
 
 ## Last Validation
 
@@ -127,13 +134,15 @@ No implementation is in progress. The offline persistence milestone is closed an
 - 2026-09-05: `flutter build apk --debug` — PASS; `build/app/outputs/flutter-apk/app-debug.apk` created.
 - 2026-09-05: `flutter build ios --debug --no-codesign` — PASS; `build/ios/iphoneos/Runner.app` created.
 - 2026-09-06: GitHub publication — PASS; `main` created on `origin` and local tracking configured.
+- 2026-09-06: Git Flow setup — PASS; `develop` is the GitHub default, both long-lived branches are protected, and prefix configuration is present locally.
 
 ## Documentation Updated
 
 - 2026-09-05: Added `engineering/Local_Persistence_Design.md` with schema, transactions, recovery, outbox, migration, and deferred work.
 - 2026-09-05: Updated project status, implementation log, decision log, and documentation reading order.
 - 2026-09-06: Recorded repository initialization, GitHub publication, and the CI follow-up.
+- 2026-09-06: Added the Git Flow guide, contributor guide, PR template, decision record, and branch-protection handoff.
 
 ## Notes For Next AI Session
 
-Read this file, `IMPLEMENTATION_LOG.md`, `DECISION_LOG.md`, and `engineering/Local_Persistence_Design.md` before changing code. Start with skip/change/cancel/review behavior, then implement the sync worker against the existing outbox contract. Do not couple remote failures to local scoring, and do not promote the prototype pack beyond `draft` without human review.
+Read this file, `IMPLEMENTATION_LOG.md`, `DECISION_LOG.md`, `engineering/Git_Workflow.md`, and `engineering/Local_Persistence_Design.md` before changing code. Start normal work from current `develop` in a focused `feature/*` or `bugfix/*` branch and merge it back through a pull request. Begin with skip/change/cancel/review behavior, then implement the sync worker against the existing outbox contract. Do not couple remote failures to local scoring, and do not promote the prototype pack beyond `draft` without human review.

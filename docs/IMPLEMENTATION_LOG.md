@@ -1,5 +1,64 @@
 # Implementation Log
 
+## 2026-09-06 — Git Flow Branching and Protection
+
+### Objective
+
+Establish `develop` as the active integration branch while keeping `main`
+release-only, with documented short-lived branch rules and server-side safety
+controls.
+
+### Implemented
+
+- Created and published `develop` from the validated `main` baseline.
+- Changed the GitHub default branch from `main` to `develop`.
+- Configured local Git Flow branch names and standard `feature/`, `release/`,
+  `hotfix/`, `support/`, and version-tag prefixes.
+- Added a contributor quick start, detailed Git Flow engineering guide, and pull
+  request template.
+- Recorded the branching policy in `DEC-004`.
+- Protected both long-lived branches by requiring pull requests and resolved
+  conversations while disabling force pushes and branch deletion.
+- Kept required approvals at zero for the current single-owner repository and
+  deferred required status checks until CI provides stable checks.
+- Used a short-lived `chore/*` branch and pull request for the final status
+  update, exercising the protected workflow.
+
+### Files Changed
+
+- `.github/pull_request_template.md`
+- `CONTRIBUTING.md`
+- `README.md`
+- `docs/README.md`
+- `docs/DECISION_LOG.md`
+- `docs/engineering/Git_Workflow.md`
+- `docs/PROJECT_STATUS.md`
+- `docs/IMPLEMENTATION_LOG.md`
+
+### Technical Decisions
+
+- `main` contains release-ready code only; `develop` is the default integration
+  branch.
+- Normal implementation is reviewed from a short-lived branch into `develop`.
+- Releases and hotfixes merge to `main`, receive `vX.Y.Z` tags, and are merged
+  back into `develop`.
+
+### Validation
+
+- Local Git Flow configuration inspection — PASS.
+- Remote `develop` creation and upstream tracking — PASS.
+- GitHub default branch query — PASS; returned `develop`.
+- GitHub branch-protection query — PASS for `main` and `develop`.
+- Documentation whitespace validation — PASS.
+
+### Result
+
+PASS
+
+### Next Step
+
+- Add CI and promote its stable checks to required branch-protection checks.
+
 ## 2026-09-06 — Initial GitHub Publication
 
 ### Objective
