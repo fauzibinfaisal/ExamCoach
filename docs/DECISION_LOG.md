@@ -1,0 +1,129 @@
+# Decision Log
+
+## DEC-001 — Local Deterministic Vertical Slice First
+
+Date: 2026-09-05
+
+Status:
+- Accepted
+
+Context:
+
+The workspace contains comprehensive requirements but no application, backend, or Flutter scaffolding. The documented delivery rule prioritizes a working Question → Answer → Score → Weakness → Recommendation → Drill loop before backend, AI, or architecture refinement.
+
+Decision:
+
+Build the first learning loop entirely from a development-only in-app mock question pack. Keep it visibly marked as `draft` until human validation. Place scoring, weakness analysis, recommendation, and drill selection in pure Dart modules, with Flutter responsible only for workflow and presentation.
+
+Reason:
+
+This produces a testable offline-first product slice immediately, respects the AI boundary, and avoids coupling the initial domain to Firebase or any one exam.
+
+Alternatives Considered:
+
+- Integrate Firebase first: rejected because it delays the core learning loop and is not required for local scoring and insight.
+- Ask an AI provider to generate insights: rejected because deterministic structured insight is the required source of truth.
+- Build a broad reusable framework first: rejected as premature for a documentation-only repository.
+
+Impact:
+
+- The first milestone will run without network access.
+- Repository contracts can later gain local/remote implementations without changing learning-engine rules.
+- Mock content must be clearly identified and retain required taxonomy/provenance metadata.
+
+Related Documents:
+
+- `docs/product/PRD.md`
+- `docs/engineering/Learning_Intelligence_Specification.md`
+- `docs/architecture/Flutter_Modular_Architecture.md`
+- `docs/architecture/Technical_Design_Document.md`
+
+## DEC-002 — Provisional Learning Engine V1 Defaults
+
+Date: 2026-09-05
+
+Status:
+- Accepted
+
+Context:
+
+The learning intelligence specification requires configurable weights, a safeguard against declaring weakness from one question, explainable recommendations, and an initial 70/20/10 drill composition. It intentionally does not prescribe calibrated numerical weakness weights or thresholds because those require experimental validation.
+
+Decision:
+
+Use the following explicitly versioned prototype defaults:
+
+- `weakness_v1`: 65% accuracy deficit, 20% time-over-target penalty, and 15% difficulty-weighted miss penalty.
+- Require at least two samples before classifying a topic as weak; use five samples for full confidence.
+- Classify weakness scores at or above 0.55 as weak and below 0.30 as strong; the middle band remains medium.
+- Treat a weakness-score decrease of at least 0.05 as improving and an increase of at least 0.05 as declining.
+- `adaptive_drill_v1`: apply configurable 70% weak / 20% medium / 10% strong targets using largest-remainder integer allocation, prioritizing unseen questions.
+- Rank recommendation targets by weakness score multiplied by confidence, and always provide a structured reason code.
+
+Reason:
+
+These defaults are simple, deterministic, testable, explainable, and configuration-driven. They allow the required learning loop to function without pretending the model has already been statistically calibrated.
+
+Alternatives Considered:
+
+- Accuracy-only weakness: rejected because it ignores the documented speed and difficulty signals.
+- Classify a topic after one answer: rejected because it violates the explicit evidence safeguard.
+- Random drill selection: rejected because it harms reproducibility and testability.
+- Hard-code exact question counts per tier: rejected because the drill session size will vary.
+
+Impact:
+
+- Product and analytics teams must treat current outputs as prototype insights, not validated predictions.
+- Future calibration can replace configuration values without changing UI or orchestration contracts.
+- Recency, cross-session consistency, spaced repetition, fatigue, and richer exposure modeling remain future engine versions.
+
+Related Documents:
+
+- `docs/product/PRD.md`
+- `docs/engineering/Learning_Intelligence_Specification.md`
+- `docs/architecture/Technical_Design_Document.md`
+
+## DEC-003 — SQLite and Transactional Outbox for Mobile Persistence
+
+Date: 2026-09-05
+
+Status:
+- Accepted
+
+Context:
+
+The first learning loop held all state in memory. The offline-first requirements demand durable question packs, active sessions, answers, local results, recommendations, analytics, migration support, and idempotent synchronization on Android and iOS.
+
+Decision:
+
+Use SQLite through `sqflite` as the initial mobile persistence engine. Keep SQL schema and migrations explicit in `ExamCoachDatabase`, inject the database factory for tests, and use `sqflite_common_ffi` only as a development dependency. Store remote-bound local mutations in a transactional outbox with stable operation IDs.
+
+Reason:
+
+- SQLite provides transactions, constraints, indexes, and explicit migrations for the relational learning data in the ERD.
+- `sqflite` directly supports the two target platforms and remains actively maintained.
+- Factory injection permits real SQLite tests without an emulator.
+- Explicit SQL avoids adding code-generation and ORM complexity before query requirements stabilize.
+- A transactional outbox prevents a successful local learning action from depending on network availability.
+
+Alternatives Considered:
+
+- Shared preferences/key-value storage: rejected because it is unsuitable for relational sessions, answer history, migrations, and queued operations.
+- Drift: viable and type-safe, but deferred because generated schema code and additional build tooling are not yet justified by the small schema/query surface.
+- Firebase-only persistence: rejected because the core learning loop must work and commit progress without a network connection.
+- Direct best-effort remote writes: rejected because failures could lose events or couple progression to connectivity.
+
+Impact:
+
+- Local writes are authoritative for the current device and survive process/database restarts.
+- Backend integration can consume `SyncOutboxRepository` without changing scoring or UI workflows.
+- Future schema changes require an explicit migration and migration test.
+- A retention policy and background sync worker are still required before production scale.
+
+Related Documents:
+
+- `docs/engineering/Database_ERD.md`
+- `docs/engineering/Analytics_Event_Map.md`
+- `docs/engineering/Local_Persistence_Design.md`
+- `docs/architecture/Flutter_Modular_Architecture.md`
+- `docs/architecture/Technical_Design_Document.md`

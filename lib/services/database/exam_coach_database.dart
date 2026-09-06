@@ -1,0 +1,235 @@
+import 'package:path/path.dart' as path_util;
+import 'package:sqflite/sqflite.dart';
+
+class ExamCoachDatabase {
+  ExamCoachDatabase({required this.databasePath, DatabaseFactory? factory})
+    : _factory = factory ?? databaseFactory;
+
+  static const schemaVersion = 2;
+  static const fileName = 'exam_coach.sqlite';
+
+  final String databasePath;
+  final DatabaseFactory _factory;
+  Database? _database;
+
+  static Future<ExamCoachDatabase> openDefault() async {
+    final directory = await getDatabasesPath();
+    final database = ExamCoachDatabase(
+      databasePath: path_util.join(directory, fileName),
+    );
+    await database.instance;
+    return database;
+  }
+
+  Future<Database> get instance async {
+    final current = _database;
+    if (current != null && current.isOpen) {
+      return current;
+    }
+
+    final opened = await _factory.openDatabase(
+      databasePath,
+      options: OpenDatabaseOptions(
+        version: schemaVersion,
+        onConfigure: (database) async {
+          await database.execute('PRAGMA foreign_keys = ON');
+        },
+        onCreate: _createSchema,
+        onUpgrade: _upgradeSchema,
+      ),
+    );
+    _database = opened;
+    return opened;
+  }
+
+  Future<void> close() async {
+    final current = _database;
+    _database = null;
+    if (current != null && current.isOpen) {
+      await current.close();
+    }
+  }
+
+  static Future<void> _createSchema(Database database, int version) async {
+    await database.transaction((transaction) async {
+      await transaction.execute('''
+        CREATE TABLE question_packs (
+          id TEXT PRIMARY KEY,
+          exam_id TEXT NOT NULL,
+          test_id TEXT NOT NULL,
+          version INTEGER NOT NULL,
+          validation_status TEXT NOT NULL,
+          downloaded_at TEXT NOT NULL
+        )
+      ''');
+      await transaction.execute('''
+        CREATE TABLE questions (
+          id TEXT PRIMARY KEY,
+          pack_id TEXT NOT NULL,
+          position INTEGER NOT NULL,
+          prompt TEXT NOT NULL,
+          options_json TEXT NOT NULL,
+          correct_option_id TEXT NOT NULL,
+          exam_id TEXT NOT NULL,
+          test_id TEXT NOT NULL,
+          domain_id TEXT NOT NULL,
+          topic_id TEXT NOT NULL,
+          subtopic_id TEXT NOT NULL,
+          skill_id TEXT NOT NULL,
+          micro_skill_id TEXT NOT NULL,
+          topic_label TEXT NOT NULL,
+          difficulty TEXT NOT NULL,
+          cognitive_type TEXT NOT NULL,
+          estimated_time_ms INTEGER NOT NULL,
+          trap_type TEXT NOT NULL,
+          provenance TEXT NOT NULL,
+          explanation TEXT NOT NULL,
+          validation_status TEXT NOT NULL,
+          content_version INTEGER NOT NULL,
+          FOREIGN KEY (pack_id) REFERENCES question_packs(id) ON DELETE CASCADE
+        )
+      ''');
+      await transaction.execute('''
+        CREATE INDEX questions_pack_position_idx
+        ON questions(pack_id, position)
+      ''');
+      await transaction.execute('''
+        CREATE TABLE exam_sessions (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          test_id TEXT NOT NULL,
+          mode TEXT NOT NULL,
+          status TEXT NOT NULL,
+          question_ids_json TEXT NOT NULL,
+          current_index INTEGER NOT NULL,
+          started_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          ended_at TEXT,
+          score INTEGER,
+          sync_version INTEGER NOT NULL
+        )
+      ''');
+      await transaction.execute('''
+        CREATE INDEX exam_sessions_status_updated_idx
+        ON exam_sessions(status, updated_at DESC)
+      ''');
+      await transaction.execute('''
+        CREATE TABLE user_answers (
+          session_id TEXT NOT NULL,
+          question_id TEXT NOT NULL,
+          position INTEGER NOT NULL,
+          selected_option_id TEXT NOT NULL,
+          correct_option_id TEXT NOT NULL,
+          is_correct INTEGER NOT NULL,
+          time_spent_ms INTEGER NOT NULL,
+          changed_answer INTEGER NOT NULL DEFAULT 0,
+          answered_at TEXT NOT NULL,
+          PRIMARY KEY (session_id, question_id),
+          FOREIGN KEY (session_id) REFERENCES exam_sessions(id) ON DELETE CASCADE,
+          FOREIGN KEY (question_id) REFERENCES questions(id)
+        )
+      ''');
+      await transaction.execute('''
+        CREATE INDEX user_answers_session_position_idx
+        ON user_answers(session_id, position)
+      ''');
+      await transaction.execute('''
+        CREATE TABLE weakness_profiles (
+          taxonomy_node_id TEXT PRIMARY KEY,
+          taxonomy_label TEXT NOT NULL,
+          weakness_score REAL NOT NULL,
+          confidence REAL NOT NULL,
+          sample_size INTEGER NOT NULL,
+          trend TEXT NOT NULL,
+          tier TEXT NOT NULL,
+          evidence_json TEXT NOT NULL,
+          algorithm_version TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      ''');
+      await transaction.execute('''
+        CREATE TABLE recommendations (
+          id TEXT PRIMARY KEY,
+          session_id TEXT NOT NULL,
+          recommendation_type TEXT NOT NULL,
+          target_taxonomy_id TEXT NOT NULL,
+          target_label TEXT NOT NULL,
+          priority INTEGER NOT NULL,
+          reason_code TEXT NOT NULL,
+          reason TEXT NOT NULL,
+          expected_benefit TEXT NOT NULL,
+          estimated_effort_ms INTEGER NOT NULL,
+          confidence REAL NOT NULL,
+          algorithm_version TEXT NOT NULL,
+          generated_at TEXT NOT NULL,
+          expires_at TEXT,
+          FOREIGN KEY (session_id) REFERENCES exam_sessions(id) ON DELETE CASCADE
+        )
+      ''');
+      await transaction.execute('''
+        CREATE INDEX recommendations_generated_idx
+        ON recommendations(generated_at DESC)
+      ''');
+      await _createSyncSchema(transaction);
+    });
+  }
+
+  static Future<void> _upgradeSchema(
+    Database database,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion > newVersion) {
+      throw StateError(
+        'Database downgrade is not supported: $oldVersion → $newVersion',
+      );
+    }
+
+    var migratedVersion = oldVersion;
+    if (migratedVersion < 2 && newVersion >= 2) {
+      await database.transaction(_createSyncSchema);
+      migratedVersion = 2;
+    }
+    if (migratedVersion != newVersion) {
+      throw StateError(
+        'Missing migration from schema $migratedVersion to $newVersion',
+      );
+    }
+  }
+
+  static Future<void> _createSyncSchema(DatabaseExecutor executor) async {
+    await executor.execute('''
+      CREATE TABLE IF NOT EXISTS analytics_events (
+        id TEXT PRIMARY KEY,
+        event_name TEXT NOT NULL,
+        event_version INTEGER NOT NULL,
+        occurred_at TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        session_id TEXT,
+        properties_json TEXT NOT NULL,
+        upload_status TEXT NOT NULL DEFAULT 'pending'
+      )
+    ''');
+    await executor.execute('''
+      CREATE INDEX IF NOT EXISTS analytics_events_upload_idx
+      ON analytics_events(upload_status, occurred_at)
+    ''');
+    await executor.execute('''
+      CREATE TABLE IF NOT EXISTS sync_outbox (
+        operation_id TEXT PRIMARY KEY,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        operation TEXT NOT NULL,
+        payload_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'pending',
+        last_error TEXT
+      )
+    ''');
+    await executor.execute('''
+      CREATE INDEX IF NOT EXISTS sync_outbox_status_created_idx
+      ON sync_outbox(status, created_at)
+    ''');
+  }
+}
