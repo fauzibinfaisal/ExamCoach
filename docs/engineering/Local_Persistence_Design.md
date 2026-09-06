@@ -14,7 +14,7 @@ The database is opened through `ExamCoachDatabase`, which accepts a `DatabaseFac
 
 ## Schema Version
 
-Current schema: `5`.
+Current schema: `6`.
 
 - Version 1: question packs, questions, exam sessions, user answers, weakness profiles, and recommendations.
 - Version 2: durable analytics events and the idempotent sync outbox.
@@ -22,6 +22,8 @@ Current schema: `5`.
 - Version 4: explicit skipped-answer state for resumable response editing and review.
 - Version 5: sync scheduling, acknowledgement, remote-revision, dead-letter,
   and retention metadata.
+- Version 6: immutable content digest, human review evidence, provenance
+  decision, and publication audit metadata.
 
 Unknown migrations and database downgrades fail explicitly instead of silently rebuilding or deleting user data.
 
@@ -32,7 +34,20 @@ Unknown migrations and database downgrades fail explicitly instead of silently r
 - `question_packs`
 - `questions`
 
-The local prototype pack is seeded once and remains `draft`. Versioned external-AI packs can be loaded from the bundled question-bank manifest and are inserted transactionally if their immutable pack ID has not been seen before. Generated packs also remain `draft`; this is a development exception, and production offline packs must be published and human-validated.
+The local prototype pack is seeded once and remains `draft`. Versioned
+external-AI packs can be loaded from the bundled question-bank manifest and are
+inserted transactionally if their immutable pack ID has not been seen before.
+New AI output enters as `draft`; only digest-bound human review can create a
+`validated` artifact, and only a separate publisher action can create a
+`published` artifact.
+
+When SQLite already contains a pack ID, bootstrap computes the immutable content
+fingerprint from stored data and compares it with the bundled artifact. A
+matching pack may advance from draft to validated/published, with review and
+publication metadata updated transactionally on the pack and its questions. A
+content mismatch or lifecycle regression fails closed. Stored review fields are
+`reviewed_at`, `review_notes`, `provenance_decision`, `provenance_notes`,
+`content_sha256`, `review_checklist_json`, `publisher`, and `published_at`.
 
 ### Learning
 
@@ -109,9 +124,10 @@ If database bootstrap itself fails, the application reports a Flutter error and 
 The integration suite uses temporary SQLite files and verifies:
 
 - schema creation and question-pack persistence;
-- migration from schema v1 through v2, v3, v4, and v5;
+- migration from schema v1 through v2, v3, v4, v5, and v6;
 - direct v4→v5 migration with acknowledgement backfill;
 - generated-pack metadata import, activation, and idempotent reload;
+- immutable draft→validated→published lifecycle persistence and tamper refusal;
 - answer-by-answer persistence;
 - database close and reopen during an active tryout;
 - restoration at the exact next question;
@@ -133,3 +149,4 @@ The integration suite uses temporary SQLite files and verifies:
 - OS-scheduled background execution beyond startup/reconnect triggers.
 - Encryption policy for future account or sensitive data.
 - Download/update/retire lifecycle for production question packs.
+- Remote CMS distribution, revocation, and retirement of published packs.

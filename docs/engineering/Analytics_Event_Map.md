@@ -56,7 +56,7 @@
   "userId": "user_id",
   "sessionId": "session_id",
   "timestamp": "ISO-8601",
-  "appVersion": "0.8.0",
+  "appVersion": "0.9.0",
   "platform": "ios",
   "properties": {
     "questionId": "q_123",

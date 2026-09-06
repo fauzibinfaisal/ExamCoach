@@ -5,7 +5,7 @@ class ExamCoachDatabase {
   ExamCoachDatabase({required this.databasePath, DatabaseFactory? factory})
     : _factory = factory ?? databaseFactory;
 
-  static const schemaVersion = 5;
+  static const schemaVersion = 6;
   static const fileName = 'exam_coach.sqlite';
 
   final String databasePath;
@@ -66,6 +66,14 @@ class ExamCoachDatabase {
           generator_model TEXT,
           prompt_version TEXT,
           generated_at TEXT,
+          reviewed_at TEXT,
+          review_notes TEXT,
+          provenance_decision TEXT,
+          provenance_notes TEXT,
+          content_sha256 TEXT,
+          review_checklist_json TEXT,
+          publisher TEXT,
+          published_at TEXT,
           tryout_question_ids_json TEXT NOT NULL,
           downloaded_at TEXT NOT NULL
         )
@@ -213,6 +221,10 @@ class ExamCoachDatabase {
       await database.transaction(_migrateSyncDeliveryV5);
       migratedVersion = 5;
     }
+    if (migratedVersion < 6 && newVersion >= 6) {
+      await database.transaction(_migrateContentReviewV6);
+      migratedVersion = 6;
+    }
     if (migratedVersion != newVersion) {
       throw StateError(
         'Missing migration from schema $migratedVersion to $newVersion',
@@ -256,6 +268,30 @@ class ExamCoachDatabase {
       CREATE INDEX IF NOT EXISTS sync_outbox_ready_idx
       ON sync_outbox(status, next_attempt_at, created_at)
     ''');
+  }
+
+  static Future<void> _migrateContentReviewV6(DatabaseExecutor executor) async {
+    final columns = await executor.rawQuery(
+      'PRAGMA table_info(question_packs)',
+    );
+    final columnNames = columns.map((column) => column['name']).toSet();
+    final additions = <String, String>{
+      'reviewed_at': 'TEXT',
+      'review_notes': 'TEXT',
+      'provenance_decision': 'TEXT',
+      'provenance_notes': 'TEXT',
+      'content_sha256': 'TEXT',
+      'review_checklist_json': 'TEXT',
+      'publisher': 'TEXT',
+      'published_at': 'TEXT',
+    };
+    for (final entry in additions.entries) {
+      if (!columnNames.contains(entry.key)) {
+        await executor.execute(
+          'ALTER TABLE question_packs ADD COLUMN ${entry.key} ${entry.value}',
+        );
+      }
+    }
   }
 
   static Future<void> _migrateContentMetadataV3(

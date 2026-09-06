@@ -1,7 +1,10 @@
 import 'dart:convert';
 
+import 'package:exam_coach/features/exam/data/question_pack_fingerprint.dart';
+import 'package:exam_coach/features/exam/data/question_review_codec.dart';
 import 'package:exam_coach/features/exam/domain/models/question.dart';
 import 'package:exam_coach/features/exam/domain/models/question_pack.dart';
+import 'package:exam_coach/features/exam/domain/models/question_pack_review.dart';
 import 'package:exam_coach/features/exam/domain/models/taxonomy_path.dart';
 
 class QuestionPackValidationException implements Exception {
@@ -17,7 +20,8 @@ class QuestionPackValidationException implements Exception {
 class QuestionPackCodec {
   const QuestionPackCodec();
 
-  static const schemaVersion = 1;
+  static const draftSchemaVersion = 1;
+  static const reviewedSchemaVersion = 2;
 
   QuestionPack decode(String source, {String sourceName = 'question pack'}) {
     late final Object? decoded;
@@ -32,9 +36,9 @@ class QuestionPackCodec {
     try {
       final root = _asObject(decoded, 'root');
       final version = _asInt(root['schemaVersion'], 'schemaVersion');
-      if (version != schemaVersion) {
+      if (version != draftSchemaVersion && version != reviewedSchemaVersion) {
         throw FormatException(
-          'schemaVersion must be $schemaVersion, received $version.',
+          'schemaVersion must be $draftSchemaVersion or $reviewedSchemaVersion, received $version.',
         );
       }
       final metadata = _asObject(root['pack'], 'pack');
@@ -85,7 +89,33 @@ class QuestionPackCodec {
             ),
           ),
         ),
+        review: metadata['review'] == null
+            ? null
+            : const QuestionReviewEvidenceCodec().decode(
+                metadata['review'],
+                'pack.review',
+              ),
+        publication: metadata['publication'] == null
+            ? null
+            : const QuestionReviewEvidenceCodec().decodePublication(
+                metadata['publication'],
+                'pack.publication',
+              ),
       );
+
+      if (version == draftSchemaVersion &&
+          pack.validationStatus != QuestionValidationStatus.draft) {
+        throw const QuestionPackValidationException([
+          'schemaVersion 1 accepts AI-generated draft content only.',
+        ]);
+      }
+      if (version == reviewedSchemaVersion &&
+          pack.validationStatus != QuestionValidationStatus.validated &&
+          pack.validationStatus != QuestionValidationStatus.published) {
+        throw const QuestionPackValidationException([
+          'schemaVersion 2 accepts validated or published content only.',
+        ]);
+      }
 
       final issues = validate(pack);
       if (issues.isNotEmpty) {
@@ -120,12 +150,7 @@ class QuestionPackCodec {
     if (pack.version < 1) {
       issues.add('pack.version must be at least 1.');
     }
-    if (pack.validationStatus != QuestionValidationStatus.draft) {
-      issues.add('AI-generated imports must remain draft until human review.');
-    }
-    if (pack.reviewer != null) {
-      issues.add('pack.reviewer must be null while the pack is draft.');
-    }
+    _validateLifecycle(pack, issues, checkId);
     if (!pack.generation.generatedAt.isUtc) {
       issues.add('pack.generation.generatedAt must include a UTC timezone.');
     }
@@ -237,9 +262,11 @@ class QuestionPackCodec {
     if (issues.isNotEmpty) {
       throw QuestionPackValidationException(issues);
     }
+    final reviewed = pack.validationStatus != QuestionValidationStatus.draft;
+    final evidenceCodec = const QuestionReviewEvidenceCodec();
     const encoder = JsonEncoder.withIndent('  ');
     return '${encoder.convert({
-      'schemaVersion': schemaVersion,
+      'schemaVersion': reviewed ? reviewedSchemaVersion : draftSchemaVersion,
       'pack': {
         'id': pack.id,
         'title': pack.title,
@@ -251,9 +278,100 @@ class QuestionPackCodec {
         'reviewer': pack.reviewer,
         'generation': {'provider': pack.generation.provider, 'model': pack.generation.model, 'promptVersion': pack.generation.promptVersion, 'generatedAt': pack.generation.generatedAt.toIso8601String()},
         'tryoutQuestionIds': pack.tryoutQuestionIds,
+        if (reviewed) 'review': evidenceCodec.encode(pack.review!),
+        if (reviewed) 'publication': pack.publication == null ? null : evidenceCodec.encodePublication(pack.publication!),
       },
       'questions': [for (final question in pack.questions) _questionToJson(question)],
     })}\n';
+  }
+
+  void _validateLifecycle(
+    QuestionPack pack,
+    List<String> issues,
+    void Function(String value, String path) checkId,
+  ) {
+    final review = pack.review;
+    final publication = pack.publication;
+    switch (pack.validationStatus) {
+      case QuestionValidationStatus.draft:
+        if (pack.reviewer != null) {
+          issues.add('pack.reviewer must be null while the pack is draft.');
+        }
+        if (review != null || publication != null) {
+          issues.add('Draft packs cannot contain review or publication data.');
+        }
+      case QuestionValidationStatus.validated:
+        if (pack.reviewer == null || review == null) {
+          issues.add('Validated packs require approved human review evidence.');
+        }
+        if (publication != null) {
+          issues.add('Validated packs cannot contain publication data.');
+        }
+      case QuestionValidationStatus.published:
+        if (pack.reviewer == null || review == null) {
+          issues.add('Published packs require approved human review evidence.');
+        }
+        if (publication == null) {
+          issues.add('Published packs require publication metadata.');
+        }
+      case QuestionValidationStatus.retired:
+        issues.add('Retired packs are not accepted by the asset-bank codec.');
+    }
+    if (review != null) {
+      if (pack.reviewer != review.reviewerId) {
+        issues.add('pack.reviewer must match pack.review.reviewerId.');
+      }
+      checkId(review.reviewerId, 'pack.review.reviewerId');
+      if (!review.reviewedAt.isUtc) {
+        issues.add('pack.review.reviewedAt must include a UTC timezone.');
+      }
+      if (review.reviewedAt.isBefore(pack.generation.generatedAt)) {
+        issues.add('pack.review.reviewedAt cannot predate generation.');
+      }
+      if (review.notes.trim().length < 10) {
+        issues.add('pack.review.notes must contain at least 10 characters.');
+      }
+      if (review.provenanceDecision == QuestionProvenanceDecision.pending) {
+        issues.add('pack.review.provenanceDecision cannot be pending.');
+      }
+      if (review.provenanceNotes.trim().length < 10) {
+        issues.add(
+          'pack.review.provenanceNotes must contain at least 10 characters.',
+        );
+      }
+      if (!RegExp(r'^[a-f0-9]{64}$').hasMatch(review.contentSha256)) {
+        issues.add('pack.review.contentSha256 must be a SHA-256 digest.');
+      } else if (review.contentSha256 !=
+          const QuestionPackFingerprint().compute(pack)) {
+        issues.add(
+          'pack.review.contentSha256 does not match immutable pack content.',
+        );
+      }
+      final expectedIds = pack.questions.map((question) => question.id).toSet();
+      final reviewedIds = review.reviewedQuestionIds.toSet();
+      if (reviewedIds.length != review.reviewedQuestionIds.length ||
+          reviewedIds.length != expectedIds.length ||
+          !reviewedIds.containsAll(expectedIds)) {
+        issues.add(
+          'pack.review.reviewedQuestionIds must contain every question exactly once.',
+        );
+      }
+      for (final criterion in QuestionReviewCriterion.values) {
+        if (review.checks[criterion] != true) {
+          issues.add('pack.review.checks.${criterion.name} must be true.');
+        }
+      }
+    }
+    if (publication != null) {
+      checkId(publication.publisherId, 'pack.publication.publisherId');
+      if (!publication.publishedAt.isUtc) {
+        issues.add('pack.publication.publishedAt must include a UTC timezone.');
+      }
+      if (review != null &&
+          publication.publishedAt.isBefore(review.reviewedAt)) {
+        issues.add('pack.publication.publishedAt cannot predate review.');
+      }
+    }
   }
 
   Question _question(Map<String, Object?> value, int index) {
@@ -409,6 +527,8 @@ QuestionValidationStatus _status(Object? value, String path) {
   try {
     return QuestionValidationStatus.values.byName(name);
   } on ArgumentError {
-    throw FormatException('$path must be draft, validated, or retired.');
+    throw FormatException(
+      '$path must be draft, validated, published, or retired.',
+    );
   }
 }

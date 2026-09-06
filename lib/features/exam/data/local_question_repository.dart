@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:exam_coach/features/exam/data/question_pack_fingerprint.dart';
 import 'package:exam_coach/features/exam/domain/models/question.dart';
 import 'package:exam_coach/features/exam/domain/models/question_pack.dart';
 import 'package:exam_coach/features/exam/domain/models/taxonomy_path.dart';
@@ -107,12 +108,12 @@ class LocalQuestionRepository implements QuestionRepository {
   Future<void> _import(Database database, QuestionPack pack) async {
     final existing = await database.query(
       'question_packs',
-      columns: const ['id'],
       where: 'id = ?',
       whereArgs: [pack.id],
       limit: 1,
     );
     if (existing.isNotEmpty) {
+      await _applyLifecycleUpdate(database, existing.single, pack);
       return;
     }
 
@@ -131,6 +132,16 @@ class LocalQuestionRepository implements QuestionRepository {
         'generator_model': pack.generation.model,
         'prompt_version': pack.generation.promptVersion,
         'generated_at': pack.generation.generatedAt.toIso8601String(),
+        'reviewed_at': pack.review?.reviewedAt.toIso8601String(),
+        'review_notes': pack.review?.notes,
+        'provenance_decision': pack.review?.provenanceDecision.name,
+        'provenance_notes': pack.review?.provenanceNotes,
+        'content_sha256': const QuestionPackFingerprint().compute(pack),
+        'review_checklist_json': pack.review == null
+            ? null
+            : _reviewChecklistJson(pack),
+        'publisher': pack.publication?.publisherId,
+        'published_at': pack.publication?.publishedAt.toIso8601String(),
         'tryout_question_ids_json': jsonEncode(pack.tryoutQuestionIds),
         'downloaded_at': now,
       });
@@ -140,6 +151,131 @@ class LocalQuestionRepository implements QuestionRepository {
           _questionToRow(pack.questions[position], position, pack.id),
         );
       }
+    });
+  }
+
+  Future<void> _applyLifecycleUpdate(
+    Database database,
+    Map<String, Object?> existingRow,
+    QuestionPack incoming,
+  ) async {
+    final stored = await _storedPack(database, existingRow);
+    const fingerprint = QuestionPackFingerprint();
+    final storedDigest = fingerprint.compute(stored);
+    final incomingDigest = fingerprint.compute(incoming);
+    if (storedDigest != incomingDigest) {
+      throw StateError(
+        'Pack ${incoming.id} changed immutable content without new IDs.',
+      );
+    }
+    final currentStatus = stored.validationStatus;
+    final incomingStatus = incoming.validationStatus;
+    if (currentStatus == incomingStatus) {
+      return;
+    }
+    if (_lifecycleRank(incomingStatus) <= _lifecycleRank(currentStatus) ||
+        incomingStatus == QuestionValidationStatus.retired) {
+      throw StateError(
+        'Pack ${incoming.id} cannot move from ${currentStatus.name} '
+        'to ${incomingStatus.name}.',
+      );
+    }
+    if (incoming.review == null) {
+      throw StateError(
+        'Pack ${incoming.id} requires persisted human review evidence.',
+      );
+    }
+    await database.transaction((transaction) async {
+      await transaction.update(
+        'question_packs',
+        {
+          'validation_status': incomingStatus.name,
+          'reviewer': incoming.reviewer,
+          'reviewed_at': incoming.review!.reviewedAt.toIso8601String(),
+          'review_notes': incoming.review!.notes,
+          'provenance_decision': incoming.review!.provenanceDecision.name,
+          'provenance_notes': incoming.review!.provenanceNotes,
+          'content_sha256': incomingDigest,
+          'review_checklist_json': _reviewChecklistJson(incoming),
+          'publisher': incoming.publication?.publisherId,
+          'published_at': incoming.publication?.publishedAt.toIso8601String(),
+        },
+        where: 'id = ?',
+        whereArgs: [incoming.id],
+      );
+      await transaction.update(
+        'questions',
+        {
+          'validation_status': incomingStatus.name,
+          'reviewer': incoming.reviewer,
+        },
+        where: 'pack_id = ?',
+        whereArgs: [incoming.id],
+      );
+    });
+  }
+
+  Future<QuestionPack> _storedPack(
+    Database database,
+    Map<String, Object?> row,
+  ) async {
+    final provider = row['generator_provider'] as String?;
+    final model = row['generator_model'] as String?;
+    final promptVersion = row['prompt_version'] as String?;
+    final generatedAt = row['generated_at'] as String?;
+    if (provider == null ||
+        model == null ||
+        promptVersion == null ||
+        generatedAt == null) {
+      throw StateError(
+        'Pack ${row['id']} is not an imported versioned AI pack.',
+      );
+    }
+    final questionRows = await database.query(
+      'questions',
+      where: 'pack_id = ?',
+      whereArgs: [row['id']],
+      orderBy: 'position ASC',
+    );
+    return QuestionPack(
+      id: row['id']! as String,
+      title: row['title']! as String,
+      examId: row['exam_id']! as String,
+      testId: row['test_id']! as String,
+      version: row['version']! as int,
+      validationStatus: QuestionValidationStatus.values.byName(
+        row['validation_status']! as String,
+      ),
+      author: row['author']! as String,
+      reviewer: row['reviewer'] as String?,
+      generation: QuestionPackGeneration(
+        provider: provider,
+        model: model,
+        promptVersion: promptVersion,
+        generatedAt: DateTime.parse(generatedAt),
+      ),
+      tryoutQuestionIds: List<String>.from(
+        jsonDecode(row['tryout_question_ids_json']! as String) as List,
+      ),
+      questions: List.unmodifiable(questionRows.map(_questionFromRow)),
+    );
+  }
+
+  static int _lifecycleRank(QuestionValidationStatus status) =>
+      switch (status) {
+        QuestionValidationStatus.draft => 0,
+        QuestionValidationStatus.validated => 1,
+        QuestionValidationStatus.published => 2,
+        QuestionValidationStatus.retired => 3,
+      };
+
+  static String _reviewChecklistJson(QuestionPack pack) {
+    final review = pack.review!;
+    return jsonEncode({
+      'reviewedQuestionIds': review.reviewedQuestionIds,
+      'checks': {
+        for (final entry in review.checks.entries) entry.key.name: entry.value,
+      },
     });
   }
 

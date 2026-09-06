@@ -233,7 +233,7 @@ class _DemoNotice extends StatelessWidget {
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Mode prototipe: soal lokal ini masih berstatus draft dan bukan materi ujian resmi.',
+              'Mode pengembangan: pack draft hanya untuk pengujian. Materi resmi wajib berstatus published dan disetujui reviewer manusia.',
             ),
           ),
         ],

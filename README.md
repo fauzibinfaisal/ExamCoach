@@ -10,7 +10,7 @@ Tryout overview → Answer or skip → Pre-submit review → Score
 
 SQLite stores downloaded prototype content, active sessions, answers/skips, learning history, recommendations, analytics, and an idempotent sync outbox. Interrupted question and pre-submit review states can be resumed after relaunch; cancelled or expired partial sessions do not affect learning insight.
 
-Current development version: `0.8.0+8`. Major version zero is intentional while
+Current development version: `0.9.0+9`. Major version zero is intentional while
 the product is unreleased. The connectivity-aware sync engine is implemented and
 tested against fake remotes, but its authenticated production gateway remains
 deferred to the Firebase milestone; local learning never waits for sync.
@@ -50,6 +50,20 @@ Start with `content/ai_question_prompt.md` and read
 AI content remains `draft`; machine validation is not a substitute for human
 content review.
 
+Imported drafts can be scanned, reviewed, validated, and published with the
+human-controlled workflow:
+
+```bash
+dart run tool/question_bank.dart similarity <pack_id>
+dart run tool/question_bank.dart review-template <pack_id> --reviewer <reviewer_id> --output reviews/<pack_id>.review.json
+dart run tool/question_bank.dart promote <pack_id> --to validated --review reviews/<pack_id>.review.json
+dart run tool/question_bank.dart promote <pack_id> --to published --publisher <publisher_id>
+```
+
+Review approval is bound to an immutable SHA-256 content fingerprint. Read
+`docs/operations/Human_Question_Review_Workflow.md` before changing any review
+field or promoting content.
+
 ## Project handoff
 
 Read these documents before changing implementation:
@@ -63,6 +77,7 @@ Read these documents before changing implementation:
 - `docs/engineering/Sync_Architecture.md`
 - `docs/engineering/Release_Versioning.md`
 - `docs/operations/AI_Question_Bank_Workflow.md`
+- `docs/operations/Human_Question_Review_Workflow.md`
 
 ## Development workflow
 

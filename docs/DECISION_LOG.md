@@ -1,5 +1,73 @@
 # Decision Log
 
+## DEC-009 — Digest-Bound Human Review and Immutable Content Promotion
+
+Date: 2026-09-06
+
+Status:
+- Accepted
+
+Context:
+
+External AI can generate structurally valid question drafts, but machine checks
+cannot establish factual correctness, a single defensible answer, editorial
+quality, calibrated difficulty, originality, or the right to publish. Updating
+reviewed content in place would also change the meaning of historical sessions
+that reference stable pack and question IDs.
+
+Decision:
+
+Keep generated imports at `draft`. Before human review, block normalized exact
+prompt matches and three-token Jaccard similarity at or above `0.82` within the
+candidate and against the bank. Require a named human to complete all eleven
+review checks for the exact question scope and record UTC time, notes, and
+provenance. Bind that evidence to a canonical SHA-256 fingerprint of all
+immutable pack/question meaning. Promote only through separate forward-only
+`draft → validated → published` actions, writing and retaining a new artifact at
+each state. Corrections require new content versions and new IDs.
+
+Reason:
+
+- Human accountability remains explicit and cannot be inferred from successful
+  parsing or AI generation.
+- A content fingerprint makes review evidence invalid after any meaningful
+  content, answer, taxonomy, provenance, or selection change.
+- Separate validation and publication preserve a clear editorial control point.
+- Retained immutable artifacts preserve auditability and historical session
+  meaning.
+- A deterministic similarity gate catches obvious overlap consistently while
+  leaving semantic originality and rights assessment to the reviewer.
+
+Alternatives Considered:
+
+- Auto-approve structurally valid AI output: rejected because correctness and
+  publication rights cannot be proven mechanically.
+- Store a mutable status on one asset file: rejected because content and review
+  history could be silently rewritten.
+- Let the same ID represent corrected wording or answers: rejected because old
+  session evidence would change meaning.
+- Treat the similarity threshold as proof of originality: rejected because
+  paraphrases and conceptual copying require human judgment.
+
+Impact:
+
+- Raw external imports remain schema-v1 drafts; reviewed lifecycle artifacts use
+  schema v2.
+- SQLite schema v6 stores review/provenance/fingerprint and publication evidence
+  and permits only matching forward lifecycle advancement.
+- Content operations require a reviewer-operated sidecar followed by an explicit
+  publisher action.
+- The repository currently has no human-approved or published question pack;
+  the built-in prototype remains development-only draft content.
+
+Related Documents:
+
+- `docs/operations/Human_Question_Review_Workflow.md`
+- `docs/operations/AI_Question_Bank_Workflow.md`
+- `docs/operations/Content_Operations_SOP.md`
+- `docs/architecture/CMS_System_Architecture.md`
+- `docs/engineering/Local_Persistence_Design.md`
+
 ## DEC-008 — Pre-1.0 Application Versioning
 
 Date: 2026-09-06

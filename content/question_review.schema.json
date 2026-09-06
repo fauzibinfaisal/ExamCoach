@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://examcoach.id/schemas/question-review-v1.json",
+  "title": "ExamCoach Human Question Pack Review v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "packId",
+    "contentSha256",
+    "reviewerId",
+    "reviewedAt",
+    "decision",
+    "notes",
+    "provenanceDecision",
+    "provenanceNotes",
+    "reviewedQuestionIds",
+    "checks"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "packId": { "$ref": "#/$defs/id" },
+    "contentSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "reviewerId": { "$ref": "#/$defs/id" },
+    "reviewedAt": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "format": "date-time" }
+      ]
+    },
+    "decision": { "enum": ["pending", "approved", "rejected"] },
+    "notes": { "type": "string" },
+    "provenanceDecision": {
+      "enum": ["pending", "original", "licensed", "publicDomain", "aiGeneratedOriginal"]
+    },
+    "provenanceNotes": { "type": "string" },
+    "reviewedQuestionIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "checks": { "$ref": "#/$defs/checks" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "factualCorrectness",
+        "singleDefensibleAnswer",
+        "promptClarity",
+        "distractorQuality",
+        "explanationQuality",
+        "taxonomyAccuracy",
+        "difficultyCalibration",
+        "languageQuality",
+        "inclusivity",
+        "provenanceRights",
+        "similarityRisk"
+      ],
+      "properties": {
+        "factualCorrectness": { "type": "boolean" },
+        "singleDefensibleAnswer": { "type": "boolean" },
+        "promptClarity": { "type": "boolean" },
+        "distractorQuality": { "type": "boolean" },
+        "explanationQuality": { "type": "boolean" },
+        "taxonomyAccuracy": { "type": "boolean" },
+        "difficultyCalibration": { "type": "boolean" },
+        "languageQuality": { "type": "boolean" },
+        "inclusivity": { "type": "boolean" },
+        "provenanceRights": { "type": "boolean" },
+        "similarityRisk": { "type": "boolean" }
+      }
+    }
+  }
+}
