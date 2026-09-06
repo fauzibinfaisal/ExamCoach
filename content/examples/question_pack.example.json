@@ -1,0 +1,215 @@
+{
+  "schemaVersion": 1,
+  "pack": {
+    "id": "pack_cpns_tiu_ai_example_v1",
+    "title": "Contoh Draft AI TIU Numerik",
+    "examId": "exam_cpns",
+    "testId": "test_tiu",
+    "version": 1,
+    "validationStatus": "draft",
+    "author": "external_ai_example",
+    "reviewer": null,
+    "generation": {
+      "provider": "example_provider",
+      "model": "example_model",
+      "promptVersion": "ai_question_pack_v1",
+      "generatedAt": "2026-09-06T00:00:00Z"
+    },
+    "tryoutQuestionIds": [
+      "q_cpns_tiu_ai_example_v1_001",
+      "q_cpns_tiu_ai_example_v1_002",
+      "q_cpns_tiu_ai_example_v1_003",
+      "q_cpns_tiu_ai_example_v1_004",
+      "q_cpns_tiu_ai_example_v1_005",
+      "q_cpns_tiu_ai_example_v1_006"
+    ]
+  },
+  "questions": [
+    {
+      "id": "q_cpns_tiu_ai_example_v1_001",
+      "prompt": "Sebuah barang berharga Rp240.000 mendapat diskon 25%. Berapa harga yang harus dibayar?",
+      "options": [
+        { "id": "a", "text": "Rp160.000" },
+        { "id": "b", "text": "Rp170.000" },
+        { "id": "c", "text": "Rp180.000" },
+        { "id": "d", "text": "Rp190.000" }
+      ],
+      "correctOptionId": "c",
+      "taxonomy": {
+        "examId": "exam_cpns",
+        "testId": "test_tiu",
+        "domainId": "domain_numerik",
+        "topicId": "topic_persentase",
+        "subtopicId": "subtopic_diskon",
+        "skillId": "skill_hitung_persentase",
+        "microSkillId": "micro_harga_setelah_diskon",
+        "topicLabel": "Persentase"
+      },
+      "difficulty": "easy",
+      "cognitiveType": "calculation",
+      "estimatedTimeSeconds": 60,
+      "trapType": "percentage_base_error",
+      "provenance": "ai_generated_original",
+      "author": "external_ai_example",
+      "reviewer": null,
+      "explanation": "Diskon 25% dari Rp240.000 adalah Rp60.000, sehingga harga akhirnya Rp180.000.",
+      "validationStatus": "draft",
+      "version": 1
+    },
+    {
+      "id": "q_cpns_tiu_ai_example_v1_002",
+      "prompt": "Perbandingan jumlah anggota kelompok A dan B adalah 5 : 7. Jika totalnya 48 orang, berapa anggota kelompok B?",
+      "options": [
+        { "id": "a", "text": "20 orang" },
+        { "id": "b", "text": "24 orang" },
+        { "id": "c", "text": "28 orang" },
+        { "id": "d", "text": "32 orang" }
+      ],
+      "correctOptionId": "c",
+      "taxonomy": {
+        "examId": "exam_cpns",
+        "testId": "test_tiu",
+        "domainId": "domain_numerik",
+        "topicId": "topic_ratio",
+        "subtopicId": "subtopic_perbandingan",
+        "skillId": "skill_operasi_ratio",
+        "microSkillId": "micro_ratio_context",
+        "topicLabel": "Perbandingan"
+      },
+      "difficulty": "easy",
+      "cognitiveType": "reasoning",
+      "estimatedTimeSeconds": 60,
+      "trapType": "ratio_part_confusion",
+      "provenance": "ai_generated_original",
+      "author": "external_ai_example",
+      "reviewer": null,
+      "explanation": "Total bagian adalah 12. Setiap bagian bernilai 48 dibagi 12, yaitu 4, sehingga kelompok B berjumlah 7 kali 4 atau 28 orang.",
+      "validationStatus": "draft",
+      "version": 1
+    },
+    {
+      "id": "q_cpns_tiu_ai_example_v1_003",
+      "prompt": "Tentukan bilangan berikutnya pada pola 4, 9, 16, 25, ...",
+      "options": [
+        { "id": "a", "text": "30" },
+        { "id": "b", "text": "32" },
+        { "id": "c", "text": "34" },
+        { "id": "d", "text": "36" }
+      ],
+      "correctOptionId": "d",
+      "taxonomy": {
+        "examId": "exam_cpns",
+        "testId": "test_tiu",
+        "domainId": "domain_numerik",
+        "topicId": "topic_number_sequence",
+        "subtopicId": "subtopic_pola_bilangan",
+        "skillId": "skill_identifikasi_pola",
+        "microSkillId": "micro_square_sequence",
+        "topicLabel": "Deret Angka"
+      },
+      "difficulty": "easy",
+      "cognitiveType": "pattern_recognition",
+      "estimatedTimeSeconds": 45,
+      "trapType": "difference_only",
+      "provenance": "ai_generated_original",
+      "author": "external_ai_example",
+      "reviewer": null,
+      "explanation": "Deret tersebut adalah kuadrat berurutan 2², 3², 4², dan 5². Bilangan berikutnya adalah 6², yaitu 36.",
+      "validationStatus": "draft",
+      "version": 1
+    },
+    {
+      "id": "q_cpns_tiu_ai_example_v1_004",
+      "prompt": "Delapan pekerja menyelesaikan tugas dalam 15 hari. Dengan produktivitas sama, berapa hari yang diperlukan 12 pekerja?",
+      "options": [
+        { "id": "a", "text": "8 hari" },
+        { "id": "b", "text": "10 hari" },
+        { "id": "c", "text": "12 hari" },
+        { "id": "d", "text": "18 hari" }
+      ],
+      "correctOptionId": "b",
+      "taxonomy": {
+        "examId": "exam_cpns",
+        "testId": "test_tiu",
+        "domainId": "domain_numerik",
+        "topicId": "topic_ratio",
+        "subtopicId": "subtopic_perbandingan_berbalik",
+        "skillId": "skill_worker_time",
+        "microSkillId": "micro_worker_days",
+        "topicLabel": "Perbandingan Berbalik Nilai"
+      },
+      "difficulty": "medium",
+      "cognitiveType": "reasoning",
+      "estimatedTimeSeconds": 75,
+      "trapType": "direct_ratio_error",
+      "provenance": "ai_generated_original",
+      "author": "external_ai_example",
+      "reviewer": null,
+      "explanation": "Total pekerjaan setara 8 kali 15 atau 120 hari-orang. Dengan 12 pekerja, waktu yang diperlukan adalah 120 dibagi 12, yaitu 10 hari.",
+      "validationStatus": "draft",
+      "version": 1
+    },
+    {
+      "id": "q_cpns_tiu_ai_example_v1_005",
+      "prompt": "Berapa nilai rata-rata dari lima bilangan 72, 76, 80, 84, dan 88?",
+      "options": [
+        { "id": "a", "text": "78" },
+        { "id": "b", "text": "79" },
+        { "id": "c", "text": "80" },
+        { "id": "d", "text": "82" }
+      ],
+      "correctOptionId": "c",
+      "taxonomy": {
+        "examId": "exam_cpns",
+        "testId": "test_tiu",
+        "domainId": "domain_numerik",
+        "topicId": "topic_statistika",
+        "subtopicId": "subtopic_rata_rata",
+        "skillId": "skill_hitung_mean",
+        "microSkillId": "micro_mean_data_tunggal",
+        "topicLabel": "Rata-rata"
+      },
+      "difficulty": "medium",
+      "cognitiveType": "calculation",
+      "estimatedTimeSeconds": 60,
+      "trapType": "sum_divisor_error",
+      "provenance": "ai_generated_original",
+      "author": "external_ai_example",
+      "reviewer": null,
+      "explanation": "Jumlah kelima bilangan adalah 400. Rata-ratanya diperoleh dari 400 dibagi 5, sehingga hasilnya 80.",
+      "validationStatus": "draft",
+      "version": 1
+    },
+    {
+      "id": "q_cpns_tiu_ai_example_v1_006",
+      "prompt": "Sebuah kendaraan menempuh jarak 150 km dalam 2,5 jam. Berapa kecepatan rata-ratanya?",
+      "options": [
+        { "id": "a", "text": "50 km/jam" },
+        { "id": "b", "text": "55 km/jam" },
+        { "id": "c", "text": "60 km/jam" },
+        { "id": "d", "text": "65 km/jam" }
+      ],
+      "correctOptionId": "c",
+      "taxonomy": {
+        "examId": "exam_cpns",
+        "testId": "test_tiu",
+        "domainId": "domain_numerik",
+        "topicId": "topic_kecepatan",
+        "subtopicId": "subtopic_kecepatan_rata_rata",
+        "skillId": "skill_jarak_waktu",
+        "microSkillId": "micro_hitung_kecepatan",
+        "topicLabel": "Jarak, Waktu, dan Kecepatan"
+      },
+      "difficulty": "medium",
+      "cognitiveType": "calculation",
+      "estimatedTimeSeconds": 60,
+      "trapType": "decimal_division_error",
+      "provenance": "ai_generated_original",
+      "author": "external_ai_example",
+      "reviewer": null,
+      "explanation": "Kecepatan rata-rata adalah jarak dibagi waktu, yaitu 150 dibagi 2,5. Hasil pembagian tersebut adalah 60 km/jam.",
+      "validationStatus": "draft",
+      "version": 1
+    }
+  ]
+}

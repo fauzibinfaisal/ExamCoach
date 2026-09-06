@@ -14,10 +14,11 @@ The database is opened through `ExamCoachDatabase`, which accepts a `DatabaseFac
 
 ## Schema Version
 
-Current schema: `2`.
+Current schema: `3`.
 
 - Version 1: question packs, questions, exam sessions, user answers, weakness profiles, and recommendations.
 - Version 2: durable analytics events and the idempotent sync outbox.
+- Version 3: question-pack title, immutable tryout selection, AI generator metadata, author, and reviewer audit fields.
 
 Unknown migrations and database downgrades fail explicitly instead of silently rebuilding or deleting user data.
 
@@ -28,7 +29,7 @@ Unknown migrations and database downgrades fail explicitly instead of silently r
 - `question_packs`
 - `questions`
 
-The local prototype pack is seeded once and remains `draft`. This is a development exception; production offline packs must be published and human-validated.
+The local prototype pack is seeded once and remains `draft`. Versioned external-AI packs can be loaded from the bundled question-bank manifest and are inserted transactionally if their immutable pack ID has not been seen before. Generated packs also remain `draft`; this is a development exception, and production offline packs must be published and human-validated.
 
 ### Learning
 
@@ -60,7 +61,9 @@ The outbox primary key makes retries idempotent. Failed attempts retain the oper
 ```text
 Application bootstrap
   → Open/migrate SQLite
-  → Seed/load local question pack
+  → Validate bundled question-bank manifest and generated packs
+  → Seed the prototype and transactionally import unseen asset packs
+  → Select the manifest's active six-question tryout
   → Load latest profiles, recommendation, score, and completed answers
   → Find active session
       → Resolve its stable question IDs
@@ -85,7 +88,8 @@ If database bootstrap itself fails, the application reports a Flutter error and 
 The integration suite uses temporary SQLite files and verifies:
 
 - schema creation and question-pack persistence;
-- migration from schema v1 to v2;
+- migration from schema v1 through v2 to v3;
+- generated-pack metadata import, activation, and idempotent reload;
 - answer-by-answer persistence;
 - database close and reopen during an active tryout;
 - restoration at the exact next question;

@@ -32,6 +32,8 @@ Question questionFixture({
     estimatedTime: estimatedTime,
     trapType: 'none',
     provenance: 'test_fixture',
+    author: 'test_suite',
+    reviewer: null,
     explanation: 'Fixture explanation',
     validationStatus: QuestionValidationStatus.draft,
     version: 1,

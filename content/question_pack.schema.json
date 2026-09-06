@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://examcoach.id/schemas/question-pack-v1.json",
+  "title": "ExamCoach AI Question Pack v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "pack", "questions"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "pack": { "$ref": "#/$defs/pack" },
+    "questions": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 500,
+      "items": { "$ref": "#/$defs/question" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "nullableReviewer": {
+      "type": "null"
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "model", "promptVersion", "generatedAt"],
+      "properties": {
+        "provider": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "promptVersion": { "const": "ai_question_pack_v1" },
+        "generatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "pack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "examId",
+        "testId",
+        "version",
+        "validationStatus",
+        "author",
+        "reviewer",
+        "generation",
+        "tryoutQuestionIds"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "title": { "type": "string", "minLength": 1 },
+        "examId": { "$ref": "#/$defs/id" },
+        "testId": { "$ref": "#/$defs/id" },
+        "version": { "type": "integer", "minimum": 1 },
+        "validationStatus": { "const": "draft" },
+        "author": { "$ref": "#/$defs/id" },
+        "reviewer": { "$ref": "#/$defs/nullableReviewer" },
+        "generation": { "$ref": "#/$defs/generation" },
+        "tryoutQuestionIds": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "option": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "text"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 500 }
+      }
+    },
+    "taxonomy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "examId",
+        "testId",
+        "domainId",
+        "topicId",
+        "subtopicId",
+        "skillId",
+        "microSkillId",
+        "topicLabel"
+      ],
+      "properties": {
+        "examId": { "$ref": "#/$defs/id" },
+        "testId": { "$ref": "#/$defs/id" },
+        "domainId": { "$ref": "#/$defs/id" },
+        "topicId": { "$ref": "#/$defs/id" },
+        "subtopicId": { "$ref": "#/$defs/id" },
+        "skillId": { "$ref": "#/$defs/id" },
+        "microSkillId": { "$ref": "#/$defs/id" },
+        "topicLabel": { "type": "string", "minLength": 1 }
+      }
+    },
+    "question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "prompt",
+        "options",
+        "correctOptionId",
+        "taxonomy",
+        "difficulty",
+        "cognitiveType",
+        "estimatedTimeSeconds",
+        "trapType",
+        "provenance",
+        "author",
+        "reviewer",
+        "explanation",
+        "validationStatus",
+        "version"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "prompt": { "type": "string", "minLength": 20, "maxLength": 2000 },
+        "options": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 6,
+          "items": { "$ref": "#/$defs/option" }
+        },
+        "correctOptionId": { "$ref": "#/$defs/id" },
+        "taxonomy": { "$ref": "#/$defs/taxonomy" },
+        "difficulty": { "enum": ["easy", "medium", "hard"] },
+        "cognitiveType": { "type": "string", "minLength": 1 },
+        "estimatedTimeSeconds": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 600
+        },
+        "trapType": { "type": "string", "minLength": 1 },
+        "provenance": { "type": "string", "minLength": 1 },
+        "author": { "$ref": "#/$defs/id" },
+        "reviewer": { "$ref": "#/$defs/nullableReviewer" },
+        "explanation": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 4000
+        },
+        "validationStatus": { "const": "draft" },
+        "version": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

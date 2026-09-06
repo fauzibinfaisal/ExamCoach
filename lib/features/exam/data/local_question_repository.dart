@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:exam_coach/features/exam/domain/models/question.dart';
+import 'package:exam_coach/features/exam/domain/models/question_pack.dart';
 import 'package:exam_coach/features/exam/domain/models/taxonomy_path.dart';
 import 'package:exam_coach/features/exam/domain/repositories/question_repository.dart';
 import 'package:exam_coach/services/database/exam_coach_database.dart';
@@ -21,8 +22,14 @@ class LocalQuestionRepository implements QuestionRepository {
 
   final ExamCoachDatabase _database;
   List<Question> _questions = const [];
+  String _activePackId = prototypePackId;
+  List<String> _activeTryoutIds = _initialTryoutIds;
 
-  Future<void> initializeWithSeed(QuestionRepository seed) async {
+  Future<void> initializeWithSeed(
+    QuestionRepository seed, {
+    List<QuestionPack> importedPacks = const [],
+    String activePackId = prototypePackId,
+  }) async {
     final database = await _database.instance;
     final existing = await database.query(
       'question_packs',
@@ -34,7 +41,26 @@ class LocalQuestionRepository implements QuestionRepository {
     if (existing.isEmpty) {
       await _seed(database, seed.allQuestions);
     }
+    for (final pack in importedPacks) {
+      await _import(database, pack);
+    }
+
+    _activePackId = activePackId;
+    if (activePackId == prototypePackId) {
+      _activeTryoutIds = _initialTryoutIds;
+    } else {
+      final activePack = importedPacks.where((pack) => pack.id == activePackId);
+      if (activePack.isEmpty) {
+        throw StateError('Active question pack $activePackId is not bundled.');
+      }
+      _activeTryoutIds = activePack.single.tryoutQuestionIds;
+    }
     await _load(database);
+    if (initialTryoutQuestions.length != _activeTryoutIds.length) {
+      throw StateError(
+        'Active pack $_activePackId is missing one or more tryout questions.',
+      );
+    }
   }
 
   @override
@@ -43,7 +69,7 @@ class LocalQuestionRepository implements QuestionRepository {
   @override
   List<Question> get initialTryoutQuestions {
     final byId = {for (final question in _questions) question.id: question};
-    return List.unmodifiable([for (final id in _initialTryoutIds) ?byId[id]]);
+    return List.unmodifiable([for (final id in _activeTryoutIds) ?byId[id]]);
   }
 
   Future<void> _seed(Database database, List<Question> questions) async {
@@ -55,16 +81,63 @@ class LocalQuestionRepository implements QuestionRepository {
     await database.transaction((transaction) async {
       await transaction.insert('question_packs', {
         'id': prototypePackId,
+        'title': 'Diagnostic TIU Prototype',
         'exam_id': first.taxonomy.examId,
         'test_id': first.taxonomy.testId,
         'version': 1,
         'validation_status': QuestionValidationStatus.draft.name,
+        'author': 'examcoach_development_team',
+        'reviewer': null,
+        'generator_provider': null,
+        'generator_model': null,
+        'prompt_version': null,
+        'generated_at': null,
+        'tryout_question_ids_json': jsonEncode(_initialTryoutIds),
         'downloaded_at': now,
       });
       for (var position = 0; position < questions.length; position++) {
         await transaction.insert(
           'questions',
-          _questionToRow(questions[position], position),
+          _questionToRow(questions[position], position, prototypePackId),
+        );
+      }
+    });
+  }
+
+  Future<void> _import(Database database, QuestionPack pack) async {
+    final existing = await database.query(
+      'question_packs',
+      columns: const ['id'],
+      where: 'id = ?',
+      whereArgs: [pack.id],
+      limit: 1,
+    );
+    if (existing.isNotEmpty) {
+      return;
+    }
+
+    final now = DateTime.now().toUtc().toIso8601String();
+    await database.transaction((transaction) async {
+      await transaction.insert('question_packs', {
+        'id': pack.id,
+        'title': pack.title,
+        'exam_id': pack.examId,
+        'test_id': pack.testId,
+        'version': pack.version,
+        'validation_status': pack.validationStatus.name,
+        'author': pack.author,
+        'reviewer': pack.reviewer,
+        'generator_provider': pack.generation.provider,
+        'generator_model': pack.generation.model,
+        'prompt_version': pack.generation.promptVersion,
+        'generated_at': pack.generation.generatedAt.toIso8601String(),
+        'tryout_question_ids_json': jsonEncode(pack.tryoutQuestionIds),
+        'downloaded_at': now,
+      });
+      for (var position = 0; position < pack.questions.length; position++) {
+        await transaction.insert(
+          'questions',
+          _questionToRow(pack.questions[position], position, pack.id),
         );
       }
     });
@@ -73,17 +146,19 @@ class LocalQuestionRepository implements QuestionRepository {
   Future<void> _load(Database database) async {
     final rows = await database.query(
       'questions',
-      where: 'pack_id = ?',
-      whereArgs: const [prototypePackId],
-      orderBy: 'position ASC',
+      orderBy: 'pack_id ASC, position ASC',
     );
     _questions = List.unmodifiable(rows.map(_questionFromRow));
   }
 
-  static Map<String, Object?> _questionToRow(Question question, int position) {
+  static Map<String, Object?> _questionToRow(
+    Question question,
+    int position,
+    String packId,
+  ) {
     return {
       'id': question.id,
-      'pack_id': prototypePackId,
+      'pack_id': packId,
       'position': position,
       'prompt': question.prompt,
       'options_json': jsonEncode([
@@ -104,6 +179,8 @@ class LocalQuestionRepository implements QuestionRepository {
       'estimated_time_ms': question.estimatedTime.inMilliseconds,
       'trap_type': question.trapType,
       'provenance': question.provenance,
+      'author': question.author,
+      'reviewer': question.reviewer,
       'explanation': question.explanation,
       'validation_status': question.validationStatus.name,
       'content_version': question.version,
@@ -142,6 +219,8 @@ class LocalQuestionRepository implements QuestionRepository {
       estimatedTime: Duration(milliseconds: row['estimated_time_ms']! as int),
       trapType: row['trap_type']! as String,
       provenance: row['provenance']! as String,
+      author: row['author']! as String,
+      reviewer: row['reviewer'] as String?,
       explanation: row['explanation']! as String,
       validationStatus: QuestionValidationStatus.values.byName(
         row['validation_status']! as String,

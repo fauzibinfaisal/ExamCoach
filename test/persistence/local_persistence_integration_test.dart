@@ -4,6 +4,8 @@ import 'package:exam_coach/analytics/analytics_events.dart';
 import 'package:exam_coach/analytics/local_analytics.dart';
 import 'package:exam_coach/features/exam/data/local_question_repository.dart';
 import 'package:exam_coach/features/exam/data/mock_question_repository.dart';
+import 'package:exam_coach/features/exam/data/question_pack_codec.dart';
+import 'package:exam_coach/features/exam/domain/models/question_pack.dart';
 import 'package:exam_coach/features/learning/application/learning_flow_cubit.dart';
 import 'package:exam_coach/features/learning/application/learning_flow_state.dart';
 import 'package:exam_coach/features/learning/data/local_learning_persistence_repository.dart';
@@ -68,36 +70,118 @@ void main() {
     );
   });
 
-  test('migrates telemetry and outbox tables from schema v1 to v2', () async {
+  test(
+    'migrates telemetry, outbox, and content metadata from v1 to v3',
+    () async {
+      final databasePath = _databasePath(temporaryDirectory);
+      final legacyDatabase = await databaseFactoryFfi.openDatabase(
+        databasePath,
+        options: OpenDatabaseOptions(
+          version: 1,
+          onCreate: (database, version) async {
+            await database.execute(
+              'CREATE TABLE legacy_marker (id TEXT PRIMARY KEY)',
+            );
+            await database.execute(
+              'CREATE TABLE question_packs (id TEXT PRIMARY KEY)',
+            );
+            await database.execute('''
+            CREATE TABLE questions (
+              id TEXT PRIMARY KEY,
+              pack_id TEXT NOT NULL
+            )
+          ''');
+            await database.insert('question_packs', {
+              'id': LocalQuestionRepository.prototypePackId,
+            });
+            await database.insert('questions', {
+              'id': 'q_ratio_01',
+              'pack_id': LocalQuestionRepository.prototypePackId,
+            });
+          },
+        ),
+      );
+      await legacyDatabase.close();
+
+      final database = ExamCoachDatabase(
+        databasePath: databasePath,
+        factory: databaseFactoryFfi,
+      );
+      addTearDown(database.close);
+      final opened = await database.instance;
+      final tables = await opened.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type = 'table'",
+      );
+      final tableNames = tables.map((row) => row['name']).toSet();
+
+      expect(await opened.getVersion(), 3);
+      expect(tableNames, contains('legacy_marker'));
+      expect(tableNames, contains('analytics_events'));
+      expect(tableNames, contains('sync_outbox'));
+      final packColumns = await opened.rawQuery(
+        'PRAGMA table_info(question_packs)',
+      );
+      final questionColumns = await opened.rawQuery(
+        'PRAGMA table_info(questions)',
+      );
+      expect(
+        packColumns.map((column) => column['name']),
+        containsAll({
+          'title',
+          'author',
+          'reviewer',
+          'generator_provider',
+          'generator_model',
+          'prompt_version',
+          'generated_at',
+          'tryout_question_ids_json',
+        }),
+      );
+      expect(
+        questionColumns.map((column) => column['name']),
+        containsAll({'author', 'reviewer'}),
+      );
+      final migratedPack = await opened.query('question_packs');
+      expect(migratedPack.single['author'], 'examcoach_development_team');
+      expect(migratedPack.single['title'], 'Diagnostic TIU Prototype');
+    },
+  );
+
+  test('imports and activates a generated draft pack idempotently', () async {
+    final generatedPack = const QuestionPackCodec().decode(
+      File('content/examples/question_pack.example.json').readAsStringSync(),
+    );
     final databasePath = _databasePath(temporaryDirectory);
-    final legacyDatabase = await databaseFactoryFfi.openDatabase(
+    var harness = await _openHarness(
       databasePath,
-      options: OpenDatabaseOptions(
-        version: 1,
-        onCreate: (database, version) async {
-          await database.execute(
-            'CREATE TABLE legacy_marker (id TEXT PRIMARY KEY)',
-          );
-        },
-      ),
+      importedPacks: [generatedPack],
+      activePackId: generatedPack.id,
     );
-    await legacyDatabase.close();
 
-    final database = ExamCoachDatabase(
-      databasePath: databasePath,
-      factory: databaseFactoryFfi,
+    expect(harness.questions.allQuestions, hasLength(18));
+    expect(
+      harness.questions.initialTryoutQuestions.map((question) => question.id),
+      generatedPack.tryoutQuestionIds,
     );
-    addTearDown(database.close);
-    final opened = await database.instance;
-    final tables = await opened.rawQuery(
-      "SELECT name FROM sqlite_master WHERE type = 'table'",
+    final database = await harness.database.instance;
+    final storedPack = await database.query(
+      'question_packs',
+      where: 'id = ?',
+      whereArgs: [generatedPack.id],
     );
-    final tableNames = tables.map((row) => row['name']).toSet();
+    expect(storedPack.single['generator_provider'], 'example_provider');
+    expect(storedPack.single['prompt_version'], 'ai_question_pack_v1');
+    expect(storedPack.single['validation_status'], 'draft');
+    expect(storedPack.single['reviewer'], isNull);
+    await harness.database.close();
 
-    expect(await opened.getVersion(), 2);
-    expect(tableNames, contains('legacy_marker'));
-    expect(tableNames, contains('analytics_events'));
-    expect(tableNames, contains('sync_outbox'));
+    harness = await _openHarness(
+      databasePath,
+      importedPacks: [generatedPack],
+      activePackId: generatedPack.id,
+    );
+    addTearDown(harness.database.close);
+    expect(harness.questions.allQuestions, hasLength(18));
   });
 
   test(
@@ -232,14 +316,22 @@ void main() {
 String _databasePath(Directory directory) =>
     path_util.join(directory.path, 'exam_coach_test.sqlite');
 
-Future<_PersistenceHarness> _openHarness(String databasePath) async {
+Future<_PersistenceHarness> _openHarness(
+  String databasePath, {
+  List<QuestionPack> importedPacks = const [],
+  String activePackId = LocalQuestionRepository.prototypePackId,
+}) async {
   final database = ExamCoachDatabase(
     databasePath: databasePath,
     factory: databaseFactoryFfi,
   );
   await database.instance;
   final questions = LocalQuestionRepository(database);
-  await questions.initializeWithSeed(MockQuestionRepository());
+  await questions.initializeWithSeed(
+    MockQuestionRepository(),
+    importedPacks: importedPacks,
+    activePackId: activePackId,
+  );
   return _PersistenceHarness(
     database: database,
     questions: questions,

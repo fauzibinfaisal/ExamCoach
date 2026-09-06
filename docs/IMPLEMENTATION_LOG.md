@@ -1,5 +1,90 @@
 # Implementation Log
 
+## 2026-09-06 — External-AI Question Bank Ingestion
+
+### Objective
+
+Allow the owner to generate question drafts with any external AI, validate them
+deterministically, and add them to the offline question bank without giving AI
+runtime authority over answers or learning decisions.
+
+### Implemented
+
+- Added the versioned `ai_question_pack_v1` JSON contract and JSON Schema.
+- Added a reusable Indonesian AI prompt and a valid six-question example pack.
+- Added a pure Dart codec and semantic validator for pack metadata, options,
+  answers, taxonomy, timing, provenance, authorship, versions, and tryout IDs.
+- Enforced AI-generated `draft` status and null reviewer claims.
+- Added a CLI with `validate`, `import`, `import --activate`, and `list` commands.
+- Made imports non-destructive by rejecting duplicate pack/question IDs and
+  existing destination files.
+- Added a safe asset manifest and bootstrap loader independent of any AI vendor.
+- Extended the local repository to import unseen packs transactionally, retain
+  all questions for historical sessions, and select the active tryout through
+  stable IDs.
+- Migrated SQLite from schema v2 to v3 with pack generator, author, reviewer,
+  and tryout-selection audit metadata.
+- Added validator, manifest safety, asset-loader, migration, active-pack, and
+  idempotent re-import tests.
+- Added the end-user generation/import workflow and updated persistence/content
+  documentation.
+
+### Files Changed
+
+- `assets/question_bank/manifest.json`
+- `content/ai_question_prompt.md`
+- `content/question_pack.schema.json`
+- `content/examples/question_pack.example.json`
+- `tool/question_bank.dart`
+- `lib/bootstrap/bootstrap.dart`
+- `lib/features/exam/data/bundled_question_bank_loader.dart`
+- `lib/features/exam/data/local_question_repository.dart`
+- `lib/features/exam/data/question_bank_manifest.dart`
+- `lib/features/exam/data/question_pack_codec.dart`
+- `lib/features/exam/data/mock_question_repository.dart`
+- `lib/features/exam/domain/models/question.dart`
+- `lib/features/exam/domain/models/question_pack.dart`
+- `lib/services/database/exam_coach_database.dart`
+- `test/features/exam/question_pack_codec_test.dart`
+- `test/persistence/local_persistence_integration_test.dart`
+- `test/support/question_fixture.dart`
+- `pubspec.yaml`
+- `README.md`
+- `docs/README.md`
+- `docs/DECISION_LOG.md`
+- `docs/PROJECT_STATUS.md`
+- `docs/engineering/Local_Persistence_Design.md`
+- `docs/operations/Content_Operations_SOP.md`
+- `docs/operations/AI_Question_Bank_Workflow.md`
+
+### Technical Decisions
+
+- Use a versioned file contract instead of embedding an AI provider in the app.
+- Revalidate content at CLI import and again during app bootstrap.
+- Treat pack and question IDs as immutable; revisions require new versioned IDs.
+- Preserve human review as the only future path from `draft` to `validated`.
+- Compile accepted packs as Flutter assets and persist unseen packs locally in
+  one SQLite transaction.
+
+### Validation
+
+- `dart format --output=none --set-exit-if-changed lib tool test` — PASS.
+- `flutter analyze` — PASS; no issues found.
+- `flutter test` — PASS; 21 tests passed.
+- CLI example validation — PASS.
+- CLI isolated import, activation, and list smoke test — PASS.
+- `flutter build apk --debug` — PASS; bank manifest present in the APK.
+- `flutter build ios --debug --no-codesign` — PASS.
+
+### Result
+
+PASS
+
+### Next Step
+
+- Let the owner test AI-generated drafts, then add reviewer signoff, similarity
+  checks, and immutable promotion tooling before any production publication.
+
 ## 2026-09-06 — Git Flow Branching and Protection
 
 ### Objective
