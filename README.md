@@ -36,5 +36,13 @@ Read these documents before changing implementation:
 - `docs/IMPLEMENTATION_LOG.md`
 - `docs/DECISION_LOG.md`
 - `docs/README.md`
+- `docs/engineering/Git_Workflow.md`
+
+## Development workflow
+
+Active development integrates into `develop`. Create `feature/*` and `bugfix/*`
+branches from `develop`; reserve `main` for releases and urgent hotfixes. See
+`CONTRIBUTING.md` for the quick start and the Git workflow document for the full
+release policy.
 
 The bundled question pack is development-only, marked `draft`, and must not be treated as published exam content without the documented human review workflow.

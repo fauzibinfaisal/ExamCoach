@@ -127,3 +127,54 @@ Related Documents:
 - `docs/engineering/Local_Persistence_Design.md`
 - `docs/architecture/Flutter_Modular_Architecture.md`
 - `docs/architecture/Technical_Design_Document.md`
+
+## DEC-004 — Git Flow Branching and Release Model
+
+Date: 2026-09-06
+
+Status:
+- Accepted
+
+Context:
+
+The project has been published to GitHub and needs a predictable separation
+between active development, stable releases, release preparation, and urgent
+production fixes.
+
+Decision:
+
+Use `main` as the production/release branch and `develop` as the active
+integration branch. Normal work starts from `develop` in `feature/*` or
+`bugfix/*`; releases use `release/*`; urgent released-code fixes use `hotfix/*`.
+Release merges into `main` receive `vX.Y.Z` semantic-version tags, and release or
+hotfix changes are always merged back into `develop`.
+
+Reason:
+
+- Stable release history remains separate from incomplete integration work.
+- Release stabilization and urgent fixes have explicit, auditable paths.
+- A consistent branch vocabulary reduces ambiguous pull request targets.
+- Back-merging prevents released fixes from disappearing from future versions.
+
+Alternatives Considered:
+
+- GitHub Flow with only `main`: simpler, but rejected because the requested
+  delivery model requires a persistent `develop` integration branch.
+- Direct development on `develop`: permitted only for initial administration;
+  rejected for normal implementation because short-lived branches improve
+  review, rollback, and ownership.
+- Long-lived branches per environment: rejected until actual deployment
+  environments require them.
+
+Impact:
+
+- GitHub's default branch becomes `develop` for normal pull requests.
+- `main` accepts only release and hotfix changes.
+- Contributors must follow the validation and merge rules in
+  `docs/engineering/Git_Workflow.md`.
+
+Related Documents:
+
+- `CONTRIBUTING.md`
+- `docs/engineering/Git_Workflow.md`
+- `docs/PROJECT_STATUS.md`
