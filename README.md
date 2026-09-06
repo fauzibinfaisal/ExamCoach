@@ -10,6 +10,11 @@ Tryout overview → Answer or skip → Pre-submit review → Score
 
 SQLite stores downloaded prototype content, active sessions, answers/skips, learning history, recommendations, analytics, and an idempotent sync outbox. Interrupted question and pre-submit review states can be resumed after relaunch; cancelled or expired partial sessions do not affect learning insight.
 
+Current development version: `0.8.0+8`. Major version zero is intentional while
+the product is unreleased. The connectivity-aware sync engine is implemented and
+tested against fake remotes, but its authenticated production gateway remains
+deferred to the Firebase milestone; local learning never waits for sync.
+
 The deterministic learning engine is the source of truth. AI integration is intentionally not part of scoring, correctness, weakness analysis, or question selection.
 
 ## Run
@@ -55,6 +60,8 @@ Read these documents before changing implementation:
 - `docs/README.md`
 - `docs/engineering/Git_Workflow.md`
 - `docs/engineering/Session_Controls_and_Review.md`
+- `docs/engineering/Sync_Architecture.md`
+- `docs/engineering/Release_Versioning.md`
 - `docs/operations/AI_Question_Bank_Workflow.md`
 
 ## Development workflow

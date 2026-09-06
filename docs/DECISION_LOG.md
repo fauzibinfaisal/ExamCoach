@@ -1,5 +1,120 @@
 # Decision Log
 
+## DEC-008 — Pre-1.0 Application Versioning
+
+Date: 2026-09-06
+
+Status:
+- Accepted
+
+Context:
+
+The generated Flutter scaffold used `1.0.0+1`, but ExamCoach is still in active
+development, has no production release, and is only eight milestones into the
+twelve-step delivery plan.
+
+Decision:
+
+Use `0.MINOR.PATCH+BUILD` until the first owner-approved production release.
+Increment `MINOR` for roadmap capabilities, `PATCH` for compatible fixes, and
+the integer `BUILD` for every distributable mobile artifact. Set the Step 8
+build to `0.8.0+8`. Keep SQLite schema versions independent from application
+versions. Reserve `1.0.0` and the `v1.0.0` Git tag for the first stable
+production release.
+
+Reason:
+
+- Semantic Versioning defines major version zero for initial development.
+- A strictly numeric three-part build name is portable across Flutter's Android
+  and iOS release tooling.
+- Monotonic build numbers give stores and testers an unambiguous artifact order.
+- Separating application and database versions prevents unsafe migration
+  assumptions.
+
+Alternatives Considered:
+
+- Keep `1.0.0+1`: rejected because it falsely signals a stable public release.
+- Use only a date or Git SHA: rejected because mobile stores still require
+  platform version/build metadata.
+- Make the app version equal the database schema version: rejected because UI,
+  domain, content, and build changes do not map one-to-one to schema migrations.
+
+Impact:
+
+- Current Android and iOS debug artifacts identify as version `0.8.0`, build
+  `8`.
+- The next compatible Step 8 fix starts at `0.8.1+9`; the next milestone starts
+  at `0.9.0` with a build number greater than eight.
+- Release tags are created only from approved `main` release commits.
+
+Related Documents:
+
+- `docs/engineering/Release_Versioning.md`
+- `docs/engineering/Git_Workflow.md`
+
+## DEC-007 — Idempotent Batched Outbox Delivery and Explicit Supersession
+
+Date: 2026-09-06
+
+Status:
+- Accepted
+
+Context:
+
+ExamCoach already commits learning and analytics mutations into a transactional
+SQLite outbox. Delivering those operations over an unreliable network requires
+retry scheduling, acknowledgement, and conflict semantics that cannot corrupt or
+block the local deterministic learning loop.
+
+Decision:
+
+Upload ready operations in stable, bounded batches through a provider-neutral
+gateway. Use the stable operation ID as the remote idempotency key and require an
+explicit accepted, duplicate, superseded, retryable-failure, or rejected result
+per operation. Retry transient or missing acknowledgements with capped
+exponential backoff; move permanent failures or the fifth failed attempt to a
+durable dead letter. Treat `superseded` as completed upload delivery without
+mutating local learning evidence. Prune only acknowledged delivery rows and
+synced analytics sources after seven days.
+
+Reason:
+
+- Local progression remains immediate and offline-first.
+- Explicit per-operation outcomes make partial and uncertain batch responses
+  recoverable.
+- A replay that reaches the server before a response is lost becomes a harmless
+  duplicate.
+- Durable dead letters prevent poison operations from blocking the ready queue.
+- Keeping inbound reconciliation separate prevents an upload transport layer
+  from silently changing official local learning results.
+
+Alternatives Considered:
+
+- Best-effort direct writes: rejected because an app/network interruption can
+  lose data.
+- Mark a full batch synced after any successful response: rejected because
+  partial acknowledgement would silently discard operations.
+- Let the worker resolve supersession by overwriting local learning rows:
+  rejected because conflict ownership requires authenticated cross-device
+  context and domain-specific reconciliation.
+- Retry forever: rejected because permanent failures would waste resources and
+  hide operational defects.
+
+Impact:
+
+- SQLite schema v5 stores scheduling, acknowledgement, revision, and
+  dead-letter metadata.
+- A production remote must implement operation-ID deduplication, ordered batch
+  results, user/entity authorization, and revision/state-transition validation.
+- Runtime registration remains deferred until the authenticated Firebase
+  boundary exists.
+
+Related Documents:
+
+- `docs/engineering/Sync_Architecture.md`
+- `docs/engineering/Local_Persistence_Design.md`
+- `docs/architecture/Backend_Service_Architecture.md`
+
 ## DEC-006 — Review-Gated, Resumable Session Lifecycle
 
 Date: 2026-09-06

@@ -2,7 +2,9 @@
 
 ## Current Phase
 
-Phase 7 resumable session controls and answer review is complete. The next phase is the first connectivity-aware sync worker over the existing transactional outbox.
+Phase 8 connectivity-aware outbox delivery is complete. The next phase is human
+content review, similarity checking, and immutable publication tooling for the
+question bank.
 
 ## Overall Progress
 
@@ -15,7 +17,7 @@ Home → Tryout overview → Answer or skip → Local commit → Pre-submit revi
 → Updated insight → Persisted history
 ```
 
-Question packs, active sessions, answers, results, weakness profiles, recommendations, analytics events, and sync operations are stored in versioned SQLite. Backend synchronization, authentication, AI, subscriptions, and production content are not implemented yet.
+Question packs, active sessions, answers, results, weakness profiles, recommendations, analytics events, and sync operations are stored in versioned SQLite. A tested provider-neutral worker can batch, retry, acknowledge, dead-letter, and prune outbox delivery when a remote gateway is supplied. The authenticated Firebase gateway, cross-device synchronization, runtime AI, subscriptions, and production content are not implemented yet.
 
 External AI tools can now produce versioned JSON question packs for deterministic local validation and asset import. ExamCoach does not call AI at runtime; generated content remains `draft` and is revalidated before transactional SQLite ingestion.
 
@@ -30,13 +32,13 @@ External AI tools can now produce versioned JSON question packs for deterministi
 | 5 | Protected Git Flow with `develop` integration | Complete |
 | 6 | Provider-neutral external-AI question-bank ingestion | Complete |
 | 7 | Skip/edit/cancel/expiry and pre/post-result review | Complete |
-| 8 | Connectivity-aware sync worker, retry, acknowledgement, and conflict policy | Next |
-| 9 | Human content review, similarity checks, and immutable publication | Planned |
+| 8 | Connectivity-aware sync worker, retry, acknowledgement, and conflict policy | Complete |
+| 9 | Human content review, similarity checks, and immutable publication | Next |
 | 10 | Firebase authentication, remote data, and cross-device recovery | Planned |
 | 11 | Structured AI Coach, quota, entitlements, and subscriptions | Planned |
 | 12 | Product analytics, accessibility, performance, CI, and release readiness | Planned |
 
-Current position: **Step 7 of 12 complete**. Integration target is `develop`;
+Current position: **Step 8 of 12 complete (66.7%)**. Integration target is `develop`;
 `main` remains unchanged until owner testing and release approval.
 
 ## Completed
@@ -80,21 +82,46 @@ Current position: **Step 7 of 12 complete**. Integration target is `develop`;
 - Added centralized cancellation, expiry, skip, answer-change, and question-review analytics.
 - Added full Cubit, SQLite, and widget coverage for the new lifecycle; the suite now contains 27 passing tests.
 - Rebuilt Android and unsigned iOS debug artifacts after the session-control milestone.
+- Added a provider-neutral remote gateway boundary and a real
+  `connectivity_plus` transport monitor.
+- Added a single-flight sync worker with stable ready-queue ordering, bounded
+  25-operation batches, and at most ten batches per run.
+- Added accepted, duplicate, and superseded acknowledgement handling without
+  allowing remote delivery to rewrite local deterministic learning state.
+- Added five-attempt exponential retry from five seconds to fifteen minutes,
+  missing-acknowledgement recovery, permanent-rejection quarantine, and durable
+  dead letters.
+- Added startup/reconnect coordination and a seven-day transactional retention
+  policy for acknowledged outbox and synced analytics records.
+- Added SQLite schema v5 delivery metadata and tested both v1→v5 and direct
+  v4→v5 migrations.
+- Added fake-remote and real-SQLite sync coverage; the complete suite now
+  contains 37 passing tests.
+- Adopted pre-1.0 versioning and set the current development build to
+  `0.8.0+8`.
+- Rebuilt Android and unsigned iOS debug artifacts and verified both embed
+  version `0.8.0`, build `8`.
 
 ## Currently Working On
 
-No implementation is in progress. Step 7 is closed, validated, and integrated into `develop` through GitHub pull request #3. `main` remains unchanged.
+No implementation is in progress. Step 8 is closed and validated for integration
+into `develop`. `main` remains unchanged.
 
 ## Next Steps
 
-1. Define the sync state machine and connectivity observer without coupling network state to local scoring/progression.
-2. Implement a batched worker over `SyncOutboxRepository` with retry backoff, remote acknowledgement, and dead-letter handling.
-3. Define last-write/version conflict behavior for answer edits, progress, cancellation, expiry, and completion.
-4. Add a fake remote and integration suite for offline → reconnect → retry/acknowledge → local cleanup.
-5. Add retention/pruning for completed sessions, synced analytics, and synced outbox records.
-6. Build human review, similarity checking, and immutable promotion tooling; publish only reviewer-approved packs.
-7. Confirm final Android/iOS application identifiers before release configuration.
-8. Add CI for formatting, static analysis, tests, and mobile build smoke checks, then make those checks required on `main` and `develop`.
+1. Define the human reviewer checklist and persist reviewer identity, timestamp,
+   review notes, and source/provenance decisions.
+2. Add deterministic exact-duplicate and normalized-similarity checks across
+   draft and existing question packs.
+3. Add an immutable `draft` → `validated`/`published` promotion command that
+   refuses incomplete reviews and never edits accepted IDs in place.
+4. Add reviewer workflow tests and update the content-operations guide with a
+   repeatable manual QA procedure.
+5. Integrate an authenticated Firebase gateway, security rules, and cross-device
+   recovery in Step 10 without coupling sync to local scoring.
+6. Confirm final Android/iOS application identifiers before release configuration.
+7. Add CI for formatting, static analysis, tests, and mobile build smoke checks,
+   then make those checks required on `main` and `develop`.
 
 ## Blockers
 
@@ -103,8 +130,10 @@ No implementation is in progress. Step 7 is closed, validated, and integrated in
 
 ## Known Issues
 
-- The outbox is durable, but there is no connectivity observer or remote sync worker yet.
-- Synced data is not pruned, so local storage can grow over time.
+- The worker has no production `SyncRemoteGateway` or bootstrap registration;
+  queued data remains local until authenticated Firebase integration in Step 10.
+- Dead letters are durable but do not yet have operator inspection or controlled
+  re-drive tooling.
 - The 24-hour session expiry is a provisional local default and is not remotely configurable yet.
 - Explanation access has a policy boundary, but the development policy allows all draft explanations until trusted subscription entitlements exist.
 - Database bootstrap fallback is transient; data created during fallback is intentionally not durable.
@@ -115,7 +144,8 @@ No implementation is in progress. Step 7 is closed, validated, and integrated in
 - AI pack validation verifies structure and internal consistency, not factual correctness, originality, ambiguity, or calibrated difficulty.
 - AI pack promotion to `validated` is intentionally not implemented; generated packs remain development-only drafts.
 - New asset packs require a fresh app build before they can reach an installed device.
-- Answer and session-progress outbox payloads use latest-local-write replacement; remote version/conflict handling is not implemented yet.
+- Cross-device inbound conflict reconciliation is not implemented; Step 8 covers
+  explicit upload acknowledgement and supersession only.
 
 ## Technical Decisions
 
@@ -126,6 +156,15 @@ No implementation is in progress. Step 7 is closed, validated, and integrated in
 - Question access remains behind a synchronous repository contract backed by an initialized local cache.
 - Learning mutations and their outbox entries share transaction boundaries.
 - Stable operation IDs make outbox retries idempotent.
+- Network availability is only a sync trigger; failed requests remain retryable
+  and never block local scoring, progression, or recovery.
+- Remote batch outcomes are explicit: accepted, duplicate, and superseded close
+  delivery; transient failures retry; permanent rejection or attempt exhaustion
+  enters a durable dead letter.
+- A superseded upload is acknowledged without mutating local learning evidence;
+  cross-device reconciliation is a separate authenticated flow.
+- Acknowledged outbox and synced analytics records are retained for seven days,
+  then pruned transactionally; pending and dead-letter records are preserved.
 - Analytics failures never block scoring or progression; successful local analytics writes are durable and queued.
 - `main` is the release branch, `develop` is the default integration branch, and `origin` points to `https://github.com/fauzibinfaisal/ExamCoach.git`.
 - Normal implementation uses `feature/*` or `bugfix/*` from `develop`; releases and production fixes use `release/*` and `hotfix/*` respectively.
@@ -137,12 +176,26 @@ No implementation is in progress. Step 7 is closed, validated, and integrated in
 - Cancelled and expired session rows are retained for audit/sync, while their partial answers are excluded from learning evidence.
 - Active sessions expire after a provisional 24 hours of inactivity during bootstrap recovery.
 - Explanation visibility is routed through `QuestionReviewAccessPolicy`; the current development policy allows all local draft explanations.
-- SQLite schema v4 adds explicit skipped-response state while keeping nullable semantics in the domain.
+- SQLite schema v5 adds delivery scheduling, acknowledgement, remote-revision,
+  dead-letter, and retention metadata.
+- Development builds use `0.MINOR.PATCH+BUILD`; `1.0.0` is reserved for the first
+  owner-approved production release. Database schema versions remain separate.
 - Weakness v1 uses configurable 65% accuracy, 20% speed, and 15% difficulty-handling weights, with two samples required for weak classification and five for full confidence.
 - Adaptive drill v1 uses largest-remainder allocation for the configurable 70/20/10 policy and prioritizes unseen questions within each tier.
 
 ## Files Recently Changed
 
+- `lib/services/sync/application/sync_worker.dart`
+- `lib/services/sync/application/sync_coordinator.dart`
+- `lib/services/sync/data/connectivity_plus_monitor.dart`
+- `lib/services/sync/domain/connectivity_monitor.dart`
+- `lib/services/sync/domain/sync_remote_gateway.dart`
+- `lib/services/sync/domain/sync_retry_policy.dart`
+- `lib/services/sync/domain/sync_run_summary.dart`
+- `test/services/sync/sync_worker_integration_test.dart`
+- `test/services/sync/sync_coordinator_test.dart`
+- `docs/engineering/Sync_Architecture.md`
+- `docs/engineering/Release_Versioning.md`
 - `pubspec.yaml`
 - `pubspec.lock`
 - `lib/main.dart`
@@ -217,6 +270,17 @@ No implementation is in progress. Step 7 is closed, validated, and integrated in
 - 2026-09-06: `flutter build apk --debug` — PASS; latest installable debug APK created.
 - 2026-09-06: `flutter build ios --debug --no-codesign` — PASS; latest unsigned `Runner.app` created.
 - 2026-09-06: Git Flow integration — PASS; pull request #3 merged Step 7 into `develop`, the feature branch was removed, and `main` remained unchanged.
+- 2026-09-06: `dart format lib test` — PASS for Step 8 sync delivery.
+- 2026-09-06: `flutter analyze` — PASS; no issues found after Step 8.
+- 2026-09-06: Focused SQLite/sync suite — PASS; 17 tests passed.
+- 2026-09-06: `flutter test` — PASS; 37 tests passed, including offline reconnect,
+  acknowledgement variants, retry/dead-letter, uncertain delivery, retention,
+  and v1/v4→v5 migration.
+- 2026-09-06: `flutter build apk --debug` — PASS; installable 155 MB debug APK
+  embeds version `0.8.0`, build `8` (SHA-256
+  `b439675d71a60b1b02f1d3735540b50562da89f9cce0590acc4087f2afb0b417`).
+- 2026-09-06: `flutter build ios --debug --no-codesign` — PASS; unsigned
+  `Runner.app` embeds version `0.8.0`, build `8`.
 
 ## Documentation Updated
 
@@ -226,7 +290,20 @@ No implementation is in progress. Step 7 is closed, validated, and integrated in
 - 2026-09-06: Added the Git Flow guide, contributor guide, PR template, decision record, and branch-protection handoff.
 - 2026-09-06: Added the external-AI question generation/import guide, JSON schema, prompt, example, persistence changes, decision record, and validation results.
 - 2026-09-06: Added the session-control/review design and manual QA guide; updated roadmap, lifecycle, schema v4, analytics, ERD, decision, and implementation records.
+- 2026-09-06: Added the sync architecture and pre-1.0 versioning guides; updated
+  roadmap, persistence schema v5, backend boundary, ERD, analytics, contributor,
+  decision, and implementation records.
 
 ## Notes For Next AI Session
 
-Read this file, `IMPLEMENTATION_LOG.md`, `DECISION_LOG.md`, `engineering/Git_Workflow.md`, `engineering/Local_Persistence_Design.md`, `engineering/Session_Controls_and_Review.md`, and `operations/AI_Question_Bank_Workflow.md` before changing code. Keep current solo development integrated through short-lived branches into `develop`, and merge to `main` only after full validation and owner approval. Step 7 of 12 is complete; begin Step 8 with the sync state machine, connectivity observer, retry/acknowledgement policy, and fake-remote tests against the existing outbox contract. Do not couple remote or AI failures to local scoring, and do not promote any generated pack beyond `draft` without human review.
+Read this file, `IMPLEMENTATION_LOG.md`, `DECISION_LOG.md`,
+`engineering/Git_Workflow.md`, `engineering/Release_Versioning.md`,
+`engineering/Local_Persistence_Design.md`, `engineering/Sync_Architecture.md`,
+`engineering/Session_Controls_and_Review.md`, and
+`operations/AI_Question_Bank_Workflow.md` before changing code. Keep solo
+development integrated through short-lived branches into `develop`, and merge to
+`main` only after full validation and owner approval. Step 8 of 12 is complete;
+begin Step 9 with human review evidence, similarity checks, and immutable content
+promotion. Do not register a production sync gateway before authenticated remote
+ownership exists, do not couple remote or AI failures to local scoring, and do
+not promote generated content without human review.

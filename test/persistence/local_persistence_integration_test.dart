@@ -71,7 +71,7 @@ void main() {
   });
 
   test(
-    'migrates telemetry, content metadata, and skipped answers from v1 to v4',
+    'migrates content, skipped answers, and sync delivery from v1 to v5',
     () async {
       final databasePath = _databasePath(temporaryDirectory);
       final legacyDatabase = await databaseFactoryFfi.openDatabase(
@@ -141,6 +141,9 @@ void main() {
       final answerColumns = await opened.rawQuery(
         'PRAGMA table_info(user_answers)',
       );
+      final outboxColumns = await opened.rawQuery(
+        'PRAGMA table_info(sync_outbox)',
+      );
       expect(
         packColumns.map((column) => column['name']),
         containsAll({
@@ -162,9 +165,85 @@ void main() {
         answerColumns.map((column) => column['name']),
         contains('is_skipped'),
       );
+      expect(
+        outboxColumns.map((column) => column['name']),
+        containsAll({
+          'last_attempt_at',
+          'next_attempt_at',
+          'synced_at',
+          'dead_lettered_at',
+          'acknowledgement',
+          'remote_revision',
+        }),
+      );
       final migratedPack = await opened.query('question_packs');
       expect(migratedPack.single['author'], 'examcoach_development_team');
       expect(migratedPack.single['title'], 'Diagnostic TIU Prototype');
+    },
+  );
+
+  test(
+    'migrates an existing v4 outbox to retry and acknowledgement fields',
+    () async {
+      final databasePath = _databasePath(temporaryDirectory);
+      final createdAt = DateTime.utc(2026, 9, 5, 12).toIso8601String();
+      final legacyDatabase = await databaseFactoryFfi.openDatabase(
+        databasePath,
+        options: OpenDatabaseOptions(
+          version: 4,
+          onCreate: (database, version) async {
+            await database.execute('''
+            CREATE TABLE sync_outbox (
+              operation_id TEXT PRIMARY KEY,
+              entity_type TEXT NOT NULL,
+              entity_id TEXT NOT NULL,
+              operation TEXT NOT NULL,
+              payload_json TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              attempts INTEGER NOT NULL DEFAULT 0,
+              status TEXT NOT NULL DEFAULT 'pending',
+              last_error TEXT
+            )
+          ''');
+            await database.insert('sync_outbox', {
+              'operation_id': 'legacy_synced',
+              'entity_type': 'exam_session',
+              'entity_id': 'session_legacy',
+              'operation': 'complete',
+              'payload_json': '{}',
+              'created_at': createdAt,
+              'attempts': 1,
+              'status': SyncOutboxStatus.synced.name,
+              'last_error': null,
+            });
+          },
+        ),
+      );
+      await legacyDatabase.close();
+
+      final database = ExamCoachDatabase(
+        databasePath: databasePath,
+        factory: databaseFactoryFfi,
+      );
+      addTearDown(database.close);
+      final opened = await database.instance;
+      final columns = await opened.rawQuery('PRAGMA table_info(sync_outbox)');
+      final row = (await opened.query('sync_outbox')).single;
+
+      expect(await opened.getVersion(), ExamCoachDatabase.schemaVersion);
+      expect(
+        columns.map((column) => column['name']),
+        containsAll({
+          'last_attempt_at',
+          'next_attempt_at',
+          'synced_at',
+          'dead_lettered_at',
+          'acknowledgement',
+          'remote_revision',
+        }),
+      );
+      expect(row['synced_at'], createdAt);
+      expect(row['acknowledgement'], SyncAcknowledgement.accepted.name);
     },
   );
 
@@ -272,15 +351,39 @@ void main() {
       expect(pending.map((item) => item.operationId).toSet(), hasLength(8));
 
       final firstOperation = pending.first;
+      final attemptedAt = DateTime.utc(2026, 9, 6, 9);
+      final nextAttemptAt = attemptedAt.add(const Duration(seconds: 5));
       await harness.persistence.markAttemptFailed(
         firstOperation.operationId,
         'offline',
+        attemptedAt: attemptedAt,
+        nextAttemptAt: nextAttemptAt,
+        deadLetter: false,
       );
       final failedOperation = (await harness.persistence.getPending())
           .firstWhere((item) => item.operationId == firstOperation.operationId);
       expect(failedOperation.attempts, 1);
       expect(failedOperation.lastError, 'offline');
-      await harness.persistence.markSynced(firstOperation.operationId);
+      expect(failedOperation.lastAttemptAt, attemptedAt);
+      expect(failedOperation.nextAttemptAt, nextAttemptAt);
+      expect(
+        (await harness.persistence.getReady(
+          now: attemptedAt,
+        )).map((item) => item.operationId),
+        isNot(contains(firstOperation.operationId)),
+      );
+      expect(
+        (await harness.persistence.getReady(
+          now: nextAttemptAt,
+        )).map((item) => item.operationId),
+        contains(firstOperation.operationId),
+      );
+      await harness.persistence.markSynced(
+        firstOperation.operationId,
+        syncedAt: nextAttemptAt,
+        acknowledgement: SyncAcknowledgement.accepted,
+        remoteRevision: 7,
+      );
       expect(
         (await harness.persistence.getPending()).map(
           (item) => item.operationId,
@@ -433,7 +536,12 @@ void main() {
     final analyticsOperation = outbox.singleWhere(
       (item) => item.entityType == 'analytics_event',
     );
-    await harness.persistence.markSynced(analyticsOperation.operationId);
+    await harness.persistence.markSynced(
+      analyticsOperation.operationId,
+      syncedAt: DateTime.utc(2026, 9, 6, 10),
+      acknowledgement: SyncAcknowledgement.accepted,
+      remoteRevision: 1,
+    );
     final uploadedEvents = await database.query('analytics_events');
     expect(uploadedEvents.single['upload_status'], 'synced');
   });
