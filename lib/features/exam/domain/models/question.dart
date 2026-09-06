@@ -2,7 +2,7 @@ import 'package:exam_coach/features/exam/domain/models/taxonomy_path.dart';
 
 enum QuestionDifficulty { easy, medium, hard }
 
-enum QuestionValidationStatus { draft, validated, retired }
+enum QuestionValidationStatus { draft, validated, published, retired }
 
 class QuestionOption {
   const QuestionOption({required this.id, required this.text});

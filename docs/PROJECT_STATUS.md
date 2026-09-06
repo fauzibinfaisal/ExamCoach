@@ -2,9 +2,9 @@
 
 ## Current Phase
 
-Phase 8 connectivity-aware outbox delivery is complete. The next phase is human
-content review, similarity checking, and immutable publication tooling for the
-question bank.
+Phase 9 human-controlled content review and immutable publication tooling is
+complete. The next phase is Firebase authentication, remote data ownership, and
+cross-device recovery.
 
 ## Overall Progress
 
@@ -19,7 +19,12 @@ Home → Tryout overview → Answer or skip → Local commit → Pre-submit revi
 
 Question packs, active sessions, answers, results, weakness profiles, recommendations, analytics events, and sync operations are stored in versioned SQLite. A tested provider-neutral worker can batch, retry, acknowledge, dead-letter, and prune outbox delivery when a remote gateway is supplied. The authenticated Firebase gateway, cross-device synchronization, runtime AI, subscriptions, and production content are not implemented yet.
 
-External AI tools can now produce versioned JSON question packs for deterministic local validation and asset import. ExamCoach does not call AI at runtime; generated content remains `draft` and is revalidated before transactional SQLite ingestion.
+External AI tools can produce versioned JSON question packs for deterministic
+local validation and asset import. Exact/normalized similarity is checked before
+acceptance. A named human can approve a SHA-256-bound review record, after which
+separate immutable artifacts advance through `validated` and `published`.
+ExamCoach does not call AI at runtime or allow AI to approve review evidence.
+No repository pack has been human-approved or published yet.
 
 ## 12-Step Delivery Roadmap
 
@@ -33,12 +38,12 @@ External AI tools can now produce versioned JSON question packs for deterministi
 | 6 | Provider-neutral external-AI question-bank ingestion | Complete |
 | 7 | Skip/edit/cancel/expiry and pre/post-result review | Complete |
 | 8 | Connectivity-aware sync worker, retry, acknowledgement, and conflict policy | Complete |
-| 9 | Human content review, similarity checks, and immutable publication | Next |
-| 10 | Firebase authentication, remote data, and cross-device recovery | Planned |
+| 9 | Human content review, similarity checks, and immutable publication | Complete |
+| 10 | Firebase authentication, remote data, and cross-device recovery | Next |
 | 11 | Structured AI Coach, quota, entitlements, and subscriptions | Planned |
 | 12 | Product analytics, accessibility, performance, CI, and release readiness | Planned |
 
-Current position: **Step 8 of 12 complete (66.7%)**. Integration target is `develop`;
+Current position: **Step 9 of 12 complete (75%)**. Integration target is `develop`;
 `main` remains unchanged until owner testing and release approval.
 
 ## Completed
@@ -101,26 +106,48 @@ Current position: **Step 8 of 12 complete (66.7%)**. Integration target is `deve
   `0.8.0+8`.
 - Rebuilt Android and unsigned iOS debug artifacts and verified both embed
   version `0.8.0`, build `8`.
+- Added deterministic normalized prompt comparison with exact-match blocking
+  and a fixed 0.82 three-token Jaccard similarity gate across and within packs.
+- Added a review-template contract covering every question plus eleven factual,
+  editorial, taxonomy, provenance, inclusivity, and similarity checks.
+- Bound human review identity, UTC time, notes, provenance decision, question
+  scope, and checklist evidence to an immutable SHA-256 content fingerprint.
+- Added separate `draft → validated → published` transitions; promotion creates
+  a new lifecycle artifact, retains prior files, and never changes accepted IDs
+  or content.
+- Added explicit publisher identity/time metadata and schema-v2 reviewed pack
+  validation while keeping raw AI import restricted to schema-v1 drafts.
+- Added SQLite schema v6 and transactional lifecycle advancement with stored
+  reviewer, provenance, digest, checklist, publisher, and timestamp evidence.
+- Added tamper, incomplete-review, similarity, immutable-promotion, CLI, and
+  real-SQLite lifecycle coverage; the complete suite now has 43 passing tests.
+- Added the human review/publication operations guide and updated the content,
+  CMS, persistence, schema, and contributor documentation.
+- Advanced the development build to `0.9.0+9` and rebuilt Android/unsigned iOS
+  artifacts with matching embedded version metadata.
 
 ## Currently Working On
 
-No implementation is in progress. Step 8 is closed, validated, and integrated
-into `develop` through GitHub pull request #5. `main` remains unchanged.
+No implementation is in progress. Step 9 is closed and validated for integration
+into `develop`. No content was self-approved or published; `main` remains
+unchanged.
 
 ## Next Steps
 
-1. Define the human reviewer checklist and persist reviewer identity, timestamp,
-   review notes, and source/provenance decisions.
-2. Add deterministic exact-duplicate and normalized-similarity checks across
-   draft and existing question packs.
-3. Add an immutable `draft` → `validated`/`published` promotion command that
-   refuses incomplete reviews and never edits accepted IDs in place.
-4. Add reviewer workflow tests and update the content-operations guide with a
-   repeatable manual QA procedure.
-5. Integrate an authenticated Firebase gateway, security rules, and cross-device
-   recovery in Step 10 without coupling sync to local scoring.
-6. Confirm final Android/iOS application identifiers before release configuration.
-7. Add CI for formatting, static analysis, tests, and mobile build smoke checks,
+1. Define Firebase environments, authenticated user identity, and ownership
+   rules without embedding secrets in the mobile application.
+2. Implement email/provider sign-in and safe local-user to authenticated-user
+   transition behavior.
+3. Implement Firestore collections, security rules, server-side operation-ID
+   deduplication, and version/state-transition validation.
+4. Register the production `SyncRemoteGateway` and test offline→login→upload,
+   uncertain retry, logout, reinstall, and cross-device recovery.
+5. Keep deterministic scoring/progression local while defining authenticated
+   inbound reconciliation separately from outbox upload acknowledgements.
+6. Have a real human reviewer complete the Step 9 workflow before any question
+   pack is treated as official production content.
+7. Confirm final Android/iOS application identifiers before release configuration.
+8. Add CI for formatting, static analysis, tests, and mobile build smoke checks,
    then make those checks required on `main` and `develop`.
 
 ## Blockers
@@ -141,8 +168,13 @@ into `develop` through GitHub pull request #5. `main` remains unchanged.
 - Adaptive drill v1 does not yet implement spaced repetition, fatigue, or difficulty progression.
 - Prototype questions are `draft`, not published content.
 - Android uses `id.examcoach.exam_coach`; iOS uses generated identifier `id.examcoach.examCoach`. These are provisional.
-- AI pack validation verifies structure and internal consistency, not factual correctness, originality, ambiguity, or calibrated difficulty.
-- AI pack promotion to `validated` is intentionally not implemented; generated packs remain development-only drafts.
+- Deterministic validation and similarity scanning do not prove factual
+  correctness, originality, licensing, ambiguity, or calibrated difficulty;
+  those remain human-review responsibilities.
+- The 0.82 shingled-Jaccard similarity threshold is a conservative deterministic
+  heuristic and has not yet been calibrated against a production corpus.
+- No pack has completed a real human review or publication; the built-in
+  prototype remains development-only draft content.
 - New asset packs require a fresh app build before they can reach an installed device.
 - Cross-device inbound conflict reconciliation is not implemented; Step 8 covers
   explicit upload acknowledgement and supersession only.
@@ -172,12 +204,24 @@ into `develop` through GitHub pull request #5. `main` remains unchanged.
 - `ai_question_pack_v1` is the canonical generated-content contract, and accepted pack/question IDs are immutable.
 - The question-bank manifest selects the active tryout; unseen bundled packs are inserted into SQLite transactionally.
 - Machine validation cannot promote AI content beyond `draft`; human review remains mandatory.
+- AI imports remain schema-v1 draft-only; reviewed schema-v2 artifacts can only
+  be created through digest-bound human approval and explicit promotion.
+- Exact normalized matches and prompt similarity at or above 0.82 block import,
+  review-template creation, and promotion; flagged content must use a corrected
+  version and new immutable IDs.
+- Human review evidence covers all question IDs and eleven required checks and
+  is bound to the immutable content with SHA-256.
+- Validation and publication are separate forward-only transitions that create
+  retained artifacts; lifecycle changes cannot alter content under existing IDs.
 - A response is either an answer or an explicit skip; scoring is review-gated and runs only after explicit session completion.
 - Cancelled and expired session rows are retained for audit/sync, while their partial answers are excluded from learning evidence.
 - Active sessions expire after a provisional 24 hours of inactivity during bootstrap recovery.
 - Explanation visibility is routed through `QuestionReviewAccessPolicy`; the current development policy allows all local draft explanations.
 - SQLite schema v5 adds delivery scheduling, acknowledgement, remote-revision,
   dead-letter, and retention metadata.
+- SQLite schema v6 stores immutable content digests, review/provenance evidence,
+  publisher metadata, and supports transactional forward-only pack lifecycle
+  advancement.
 - Development builds use `0.MINOR.PATCH+BUILD`; `1.0.0` is reserved for the first
   owner-approved production release. Database schema versions remain separate.
 - Weakness v1 uses configurable 65% accuracy, 20% speed, and 15% difficulty-handling weights, with two samples required for weak classification and five for full confidence.
@@ -185,6 +229,17 @@ into `develop` through GitHub pull request #5. `main` remains unchanged.
 
 ## Files Recently Changed
 
+- `content/question_pack.schema.json`
+- `content/question_review.schema.json`
+- `tool/question_bank.dart`
+- `lib/features/exam/data/question_pack_fingerprint.dart`
+- `lib/features/exam/data/question_pack_promotion_service.dart`
+- `lib/features/exam/data/question_review_codec.dart`
+- `lib/features/exam/data/question_similarity_analyzer.dart`
+- `lib/features/exam/domain/models/question_pack_review.dart`
+- `test/features/exam/question_review_workflow_test.dart`
+- `test/tool/question_bank_cli_test.dart`
+- `docs/operations/Human_Question_Review_Workflow.md`
 - `lib/services/sync/application/sync_worker.dart`
 - `lib/services/sync/application/sync_coordinator.dart`
 - `lib/services/sync/data/connectivity_plus_monitor.dart`
@@ -283,6 +338,20 @@ into `develop` through GitHub pull request #5. `main` remains unchanged.
   `Runner.app` embeds version `0.8.0`, build `8`.
 - 2026-09-06: Git Flow integration — PASS; pull request #5 merged Step 8 into
   `develop`, the feature branch was removed, and `main` remained unchanged.
+- 2026-09-06: JSON Schema syntax and draft CLI validate/list smoke test — PASS.
+- 2026-09-06: Focused review/codec/SQLite suite — PASS; 18 tests passed.
+- 2026-09-06: Immutable CLI review/publication integration test — PASS.
+- 2026-09-06: `dart format lib tool test` — PASS for Step 9.
+- 2026-09-06: `flutter analyze` — PASS; no issues found after Step 9.
+- 2026-09-06: `flutter test` — PASS; 43 tests passed, including incomplete
+  review refusal, digest tamper detection, similarity blocking, immutable
+  lifecycle artifacts, CLI flow, SQLite lifecycle persistence, and v1/v4→v6
+  migration.
+- 2026-09-06: `flutter build apk --debug` — PASS; installable 155 MB debug APK
+  embeds version `0.9.0`, build `9` (SHA-256
+  `c62ecec556f9eafefeab422bba082c805ff1876aa2831a1fa91dd4b9f4d13637`).
+- 2026-09-06: `flutter build ios --debug --no-codesign` — PASS; unsigned
+  `Runner.app` embeds version `0.9.0`, build `9`.
 
 ## Documentation Updated
 
@@ -295,6 +364,10 @@ into `develop` through GitHub pull request #5. `main` remains unchanged.
 - 2026-09-06: Added the sync architecture and pre-1.0 versioning guides; updated
   roadmap, persistence schema v5, backend boundary, ERD, analytics, contributor,
   decision, and implementation records.
+- 2026-09-06: Added the human review/publication guide and review JSON schema;
+  updated question-pack lifecycle schema, content SOP, AI workflow, CMS,
+  persistence schema v6, ERD, versioning, contributor, decision, and
+  implementation records.
 
 ## Notes For Next AI Session
 
@@ -302,10 +375,12 @@ Read this file, `IMPLEMENTATION_LOG.md`, `DECISION_LOG.md`,
 `engineering/Git_Workflow.md`, `engineering/Release_Versioning.md`,
 `engineering/Local_Persistence_Design.md`, `engineering/Sync_Architecture.md`,
 `engineering/Session_Controls_and_Review.md`, and
-`operations/AI_Question_Bank_Workflow.md` before changing code. Keep solo
+`operations/AI_Question_Bank_Workflow.md`, and
+`operations/Human_Question_Review_Workflow.md` before changing code. Keep solo
 development integrated through short-lived branches into `develop`, and merge to
-`main` only after full validation and owner approval. Step 8 of 12 is complete;
-begin Step 9 with human review evidence, similarity checks, and immutable content
-promotion. Do not register a production sync gateway before authenticated remote
-ownership exists, do not couple remote or AI failures to local scoring, and do
-not promote generated content without human review.
+`main` only after full validation and owner approval. Step 9 of 12 is complete;
+begin Step 10 with Firebase authentication, server-enforced ownership,
+idempotent remote operations, and cross-device recovery. Do not register a
+production sync gateway before authenticated ownership/security rules exist, do
+not couple remote or AI failures to local scoring, and do not claim human review
+or publish generated content on a reviewer's behalf.

@@ -5,7 +5,11 @@ import 'package:exam_coach/analytics/local_analytics.dart';
 import 'package:exam_coach/features/exam/data/local_question_repository.dart';
 import 'package:exam_coach/features/exam/data/mock_question_repository.dart';
 import 'package:exam_coach/features/exam/data/question_pack_codec.dart';
+import 'package:exam_coach/features/exam/data/question_pack_fingerprint.dart';
+import 'package:exam_coach/features/exam/data/question_pack_promotion_service.dart';
+import 'package:exam_coach/features/exam/data/question_review_codec.dart';
 import 'package:exam_coach/features/exam/domain/models/question_pack.dart';
+import 'package:exam_coach/features/exam/domain/models/question_pack_review.dart';
 import 'package:exam_coach/features/learning/application/learning_flow_cubit.dart';
 import 'package:exam_coach/features/learning/application/learning_flow_state.dart';
 import 'package:exam_coach/features/learning/data/local_learning_persistence_repository.dart';
@@ -71,7 +75,7 @@ void main() {
   });
 
   test(
-    'migrates content, skipped answers, and sync delivery from v1 to v5',
+    'migrates content, skipped answers, sync, and review data from v1 to v6',
     () async {
       final databasePath = _databasePath(temporaryDirectory);
       final legacyDatabase = await databaseFactoryFfi.openDatabase(
@@ -154,6 +158,14 @@ void main() {
           'generator_model',
           'prompt_version',
           'generated_at',
+          'reviewed_at',
+          'review_notes',
+          'provenance_decision',
+          'provenance_notes',
+          'content_sha256',
+          'review_checklist_json',
+          'publisher',
+          'published_at',
           'tryout_question_ids_json',
         }),
       );
@@ -183,7 +195,7 @@ void main() {
   );
 
   test(
-    'migrates an existing v4 outbox to retry and acknowledgement fields',
+    'migrates an existing v4 database through sync and review fields',
     () async {
       final databasePath = _databasePath(temporaryDirectory);
       final createdAt = DateTime.utc(2026, 9, 5, 12).toIso8601String();
@@ -192,6 +204,11 @@ void main() {
         options: OpenDatabaseOptions(
           version: 4,
           onCreate: (database, version) async {
+            await database.execute('''
+            CREATE TABLE question_packs (
+              id TEXT PRIMARY KEY
+            )
+          ''');
             await database.execute('''
             CREATE TABLE sync_outbox (
               operation_id TEXT PRIMARY KEY,
@@ -228,6 +245,9 @@ void main() {
       addTearDown(database.close);
       final opened = await database.instance;
       final columns = await opened.rawQuery('PRAGMA table_info(sync_outbox)');
+      final packColumns = await opened.rawQuery(
+        'PRAGMA table_info(question_packs)',
+      );
       final row = (await opened.query('sync_outbox')).single;
 
       expect(await opened.getVersion(), ExamCoachDatabase.schemaVersion);
@@ -244,6 +264,19 @@ void main() {
       );
       expect(row['synced_at'], createdAt);
       expect(row['acknowledgement'], SyncAcknowledgement.accepted.name);
+      expect(
+        packColumns.map((column) => column['name']),
+        containsAll({
+          'reviewed_at',
+          'review_notes',
+          'provenance_decision',
+          'provenance_notes',
+          'content_sha256',
+          'review_checklist_json',
+          'publisher',
+          'published_at',
+        }),
+      );
     },
   );
 
@@ -283,6 +316,105 @@ void main() {
     addTearDown(harness.database.close);
     expect(harness.questions.allQuestions, hasLength(18));
   });
+
+  test(
+    'persists immutable validated and published lifecycle evidence',
+    () async {
+      final draft = const QuestionPackCodec().decode(
+        File('content/examples/question_pack.example.json').readAsStringSync(),
+      );
+      final validated = const QuestionPackPromotionService().validateDraft(
+        draft,
+        _approvedReview(draft),
+      );
+      final published = const QuestionPackPromotionService().publishValidated(
+        validated,
+        publisherId: 'publisher_fauzi',
+        publishedAt: DateTime.utc(2026, 9, 8),
+      );
+      final databasePath = _databasePath(temporaryDirectory);
+
+      var harness = await _openHarness(
+        databasePath,
+        importedPacks: [draft],
+        activePackId: draft.id,
+      );
+      await harness.database.close();
+      harness = await _openHarness(
+        databasePath,
+        importedPacks: [validated],
+        activePackId: validated.id,
+      );
+      var database = await harness.database.instance;
+      var packRow = (await database.query(
+        'question_packs',
+        where: 'id = ?',
+        whereArgs: [draft.id],
+      )).single;
+      expect(packRow['validation_status'], 'validated');
+      expect(packRow['reviewer'], 'reviewer_fauzi');
+      expect(
+        packRow['reviewed_at'],
+        DateTime.utc(2026, 9, 7).toIso8601String(),
+      );
+      expect(packRow['provenance_decision'], 'aiGeneratedOriginal');
+      expect(
+        packRow['content_sha256'],
+        const QuestionPackFingerprint().compute(draft),
+      );
+      expect(packRow['review_checklist_json'], contains('factualCorrectness'));
+      expect(
+        (await database.query(
+          'questions',
+          where: 'pack_id = ?',
+          whereArgs: [draft.id],
+        )).every((row) => row['validation_status'] == 'validated'),
+        isTrue,
+      );
+      await harness.database.close();
+
+      harness = await _openHarness(
+        databasePath,
+        importedPacks: [published],
+        activePackId: published.id,
+      );
+      addTearDown(harness.database.close);
+      database = await harness.database.instance;
+      packRow = (await database.query(
+        'question_packs',
+        where: 'id = ?',
+        whereArgs: [draft.id],
+      )).single;
+      expect(packRow['validation_status'], 'published');
+      expect(packRow['publisher'], 'publisher_fauzi');
+      expect(
+        packRow['published_at'],
+        DateTime.utc(2026, 9, 8).toIso8601String(),
+      );
+
+      await harness.database.close();
+      final rejectingDatabase = ExamCoachDatabase(
+        databasePath: databasePath,
+        factory: databaseFactoryFfi,
+      );
+      addTearDown(rejectingDatabase.close);
+      final rejectingRepository = LocalQuestionRepository(rejectingDatabase);
+      await expectLater(
+        rejectingRepository.initializeWithSeed(
+          MockQuestionRepository(),
+          importedPacks: [_copyWithTitle(published, 'Tampered title')],
+          activePackId: published.id,
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('changed immutable content'),
+          ),
+        ),
+      );
+    },
+  );
 
   test(
     'recovers an interrupted session and completed learning history',
@@ -601,3 +733,42 @@ class _PersistenceHarness {
   final LocalQuestionRepository questions;
   final LocalLearningPersistenceRepository persistence;
 }
+
+QuestionPackReviewEvidence _approvedReview(QuestionPack pack) {
+  final digest = const QuestionPackFingerprint().compute(pack);
+  return const QuestionReviewCodec().approve(
+    submission: QuestionReviewSubmission(
+      packId: pack.id,
+      contentSha256: digest,
+      reviewerId: 'reviewer_fauzi',
+      reviewedAt: DateTime.utc(2026, 9, 7),
+      decision: QuestionReviewDecision.approved,
+      notes: 'Seluruh soal sudah diperiksa dan disetujui oleh reviewer.',
+      provenanceDecision: QuestionProvenanceDecision.aiGeneratedOriginal,
+      provenanceNotes:
+          'Materi AI dinilai orisinal dan sumbernya terdokumentasi.',
+      reviewedQuestionIds: [for (final question in pack.questions) question.id],
+      checks: {
+        for (final criterion in QuestionReviewCriterion.values) criterion: true,
+      },
+    ),
+    pack: pack,
+    contentSha256: digest,
+  );
+}
+
+QuestionPack _copyWithTitle(QuestionPack source, String title) => QuestionPack(
+  id: source.id,
+  title: title,
+  examId: source.examId,
+  testId: source.testId,
+  version: source.version,
+  validationStatus: source.validationStatus,
+  author: source.author,
+  reviewer: source.reviewer,
+  generation: source.generation,
+  tryoutQuestionIds: source.tryoutQuestionIds,
+  questions: source.questions,
+  review: source.review,
+  publication: source.publication,
+);

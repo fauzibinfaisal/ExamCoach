@@ -42,9 +42,16 @@ AI-generated questions remain Draft until validated for correctness, ambiguity, 
 
 The implemented provider-neutral JSON generation, validation, asset import, and
 SQLite loading procedure is documented in `AI_Question_Bank_Workflow.md`.
+Human review evidence, similarity scanning, and immutable lifecycle promotion
+are documented in `Human_Question_Review_Workflow.md`.
 
 ## Quality Gate
 No question is published without verified answer/explanation, valid taxonomy, provenance, and reviewer approval.
+
+Validation and publication are separate actions. Review approval is bound to a
+SHA-256 fingerprint of the immutable content, and publication records a stable
+publisher identity and UTC timestamp. A correction always creates a new version
+and IDs; accepted artifacts are not overwritten.
 
 ## Monitoring
 Review unusually low accuracy, high skip rate, long response time, user reports, and answer disputes.

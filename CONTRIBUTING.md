@@ -31,3 +31,8 @@ question content without the documented human review.
 Before creating a distributable build, increment the integer build number. Use
 `0.MINOR.PATCH+BUILD` during initial development and reserve `1.0.0` for the
 first owner-approved production release.
+
+Question-pack promotion must follow
+[`docs/operations/Human_Question_Review_Workflow.md`](docs/operations/Human_Question_Review_Workflow.md).
+Never fill a human review record with AI, overwrite a lifecycle artifact, or
+change accepted content under an existing ID.

@@ -2,15 +2,15 @@
 
 ## Current Version
 
-The current development build is `0.8.0+8`.
+The current development build is `0.9.0+9`.
 
-- `0.8.0` is the public application version (`build-name`).
-- `8` is the monotonically increasing store/build number (`build-number`).
+- `0.9.0` is the public application version (`build-name`).
+- `9` is the monotonically increasing store/build number (`build-number`).
 - Major version zero communicates that ExamCoach is still in initial
   development and its public behavior may change before the first stable
   release.
 
-The database schema is independently versioned and is currently schema v5. App
+The database schema is independently versioned and is currently schema v6. App
 version and database schema version must never be assumed to advance together.
 
 ## Policy Before 1.0
@@ -29,8 +29,8 @@ Examples:
 | Change | Next version example |
 |---|---|
 | Step 8 milestone build | `0.8.0+8` |
-| Step 8 corrective build | `0.8.1+9` |
-| Step 9 milestone build | `0.9.0+10` |
+| Step 9 milestone build | `0.9.0+9` |
+| Step 9 corrective build | `0.9.1+10` |
 | First production release | `1.0.0+N` |
 
 The three-part numeric version is kept platform-safe for Flutter, Android, and

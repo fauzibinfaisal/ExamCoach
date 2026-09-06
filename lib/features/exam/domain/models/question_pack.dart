@@ -1,4 +1,5 @@
 import 'package:exam_coach/features/exam/domain/models/question.dart';
+import 'package:exam_coach/features/exam/domain/models/question_pack_review.dart';
 
 class QuestionPackGeneration {
   const QuestionPackGeneration({
@@ -27,6 +28,8 @@ class QuestionPack {
     required this.generation,
     required this.tryoutQuestionIds,
     required this.questions,
+    this.review,
+    this.publication,
   });
 
   final String id;
@@ -40,4 +43,6 @@ class QuestionPack {
   final QuestionPackGeneration generation;
   final List<String> tryoutQuestionIds;
   final List<Question> questions;
+  final QuestionPackReviewEvidence? review;
+  final QuestionPackPublication? publication;
 }

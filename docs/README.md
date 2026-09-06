@@ -26,6 +26,7 @@ This folder contains the core context documents for the ExamCoach project.
 20. architecture/Technical_Design_Document.md
 21. operations/Content_Operations_SOP.md
 22. operations/AI_Question_Bank_Workflow.md
+23. operations/Human_Question_Review_Workflow.md
 
 ## Product Thesis
 > Optimize measurable learning improvement, not question volume.

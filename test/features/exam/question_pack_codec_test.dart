@@ -38,7 +38,7 @@ void main() {
         isA<QuestionPackValidationException>().having(
           (error) => error.issues.join(' '),
           'issues',
-          contains('must remain draft'),
+          contains('schemaVersion 1 accepts AI-generated draft'),
         ),
       ),
     );

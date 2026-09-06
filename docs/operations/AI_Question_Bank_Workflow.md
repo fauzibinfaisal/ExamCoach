@@ -9,7 +9,8 @@ mobile app before SQLite imports it locally.
 
 ```text
 External AI → JSON draft → Local validator → Asset bank manifest
-→ App rebuild/reinstall → Transactional SQLite import → Draft tryout
+→ Human review → Immutable validation/publication → App rebuild/reinstall
+→ Transactional SQLite import
 ```
 
 Passing the validator proves structural consistency only. It does not prove
@@ -43,7 +44,8 @@ The command exits unsuccessfully and lists validation errors when it finds
 malformed JSON, unsupported schema versions, bad IDs, broken answer references,
 duplicate options/questions, incomplete taxonomy, invalid durations, missing
 provenance, inconsistent authorship, non-draft status, or an invalid six-question
-tryout selection.
+tryout selection. Import also runs the normalized similarity gate before writing
+the bank or manifest.
 
 Fix the source file or ask the AI to regenerate it, then validate again. Never
 remove a validation rule simply to accept one AI response.
@@ -92,13 +94,16 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 ```
 
 On startup, ExamCoach validates the bundled pack again and imports any unseen
-pack transactionally into SQLite schema v3. Previously imported packs are kept
-for session/history integrity. The manifest decides which pack supplies the six
-initial tryout questions.
+pack transactionally into SQLite schema v6. A reviewed lifecycle artifact can
+advance an existing pack only when its immutable SHA-256 content fingerprint
+matches. Previously imported content remains available for session/history
+integrity. The manifest decides which pack supplies the six initial tryout
+questions.
 
 ## 5. Human Review Gate
 
-Every generated pack remains a development-only `draft`. A human reviewer must
+Every newly generated pack enters as a development-only `draft`. A human
+reviewer must
 verify at least:
 
 - mathematical/factual correctness and exactly one defensible answer;
@@ -107,9 +112,10 @@ verify at least:
 - originality, licensing/provenance, and unacceptable similarity risk;
 - language, inclusivity, and suitability for the intended exam.
 
-The current importer deliberately refuses `validated` AI packs. Promotion and
-reviewer-signoff tooling is a separate future milestone; until then, generated
-packs must not be released as official ExamCoach content.
+The importer deliberately accepts AI output as `draft` only. Generate the
+digest-bound review template, perform the human review, and use the immutable
+promotion commands documented in `Human_Question_Review_Workflow.md`. A machine
+or AI must never approve the checklist on a reviewer's behalf.
 
 ## Failure Safety
 
@@ -117,5 +123,8 @@ packs must not be released as official ExamCoach content.
   fallback rather than partially modifying SQLite.
 - A pack insert and all of its question inserts share one database transaction.
 - Stable pack/question IDs prevent duplicate import and preserve answer history.
+- Draft, validated, and published artifacts are retained rather than
+  overwritten.
+- Promotion rechecks the immutable content digest and normalized similarity.
 - The AI is never called at runtime and never participates in scoring, weakness
   calculation, recommendations, or answer correctness.

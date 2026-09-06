@@ -1,5 +1,105 @@
 # Implementation Log
 
+## 2026-09-06 — Human-Gated Question Review and Immutable Publication
+
+### Objective
+
+Add an auditable human review and publication boundary for externally generated
+question packs without allowing machine validation, AI output, or lifecycle
+changes to rewrite accepted content or identifiers.
+
+### Implemented
+
+- Added deterministic normalized-prompt comparison with exact-match blocking
+  and a fixed `0.82` three-token Jaccard threshold within and across packs.
+- Added a review sidecar contract covering every question plus eleven factual,
+  editorial, taxonomy, difficulty, inclusivity, provenance, and similarity
+  checks.
+- Bound reviewer identity, UTC completion time, notes, provenance evidence,
+  reviewed question scope, and checklist evidence to a canonical SHA-256 content
+  fingerprint.
+- Added strict `draft → validated → published` promotion. Each transition writes
+  a new immutable artifact, retains previous files, and refuses incomplete,
+  mismatched, regressive, or content-mutating transitions.
+- Added separate publisher identity/time evidence and schema-v2 pack support,
+  while keeping external-AI import restricted to schema-v1 drafts.
+- Extended the question-bank CLI with `similarity`, `review-template`, and
+  `promote` commands.
+- Migrated SQLite from schema v5 to v6 and persisted review, provenance,
+  fingerprint, checklist, publisher, and publication evidence.
+- Added transactional lifecycle catch-up for an already imported matching pack
+  and fail-closed detection for content changes under an existing pack ID.
+- Advanced the unreleased development version from `0.8.0+8` to `0.9.0+9`.
+- Documented the exact reviewer-operated workflow and explicitly preserved the
+  built-in prototype as unreviewed development-only draft content.
+
+### Files Changed
+
+- `content/question_pack.schema.json`
+- `content/question_review.schema.json`
+- `tool/question_bank.dart`
+- `lib/features/exam/data/local_question_repository.dart`
+- `lib/features/exam/data/question_pack_codec.dart`
+- `lib/features/exam/data/question_pack_fingerprint.dart`
+- `lib/features/exam/data/question_pack_promotion_service.dart`
+- `lib/features/exam/data/question_review_codec.dart`
+- `lib/features/exam/data/question_similarity_analyzer.dart`
+- `lib/features/exam/domain/models/question.dart`
+- `lib/features/exam/domain/models/question_pack.dart`
+- `lib/features/exam/domain/models/question_pack_review.dart`
+- `lib/services/database/exam_coach_database.dart`
+- `test/features/exam/question_pack_codec_test.dart`
+- `test/features/exam/question_review_workflow_test.dart`
+- `test/persistence/local_persistence_integration_test.dart`
+- `test/tool/question_bank_cli_test.dart`
+- `docs/operations/Human_Question_Review_Workflow.md`
+- `docs/operations/AI_Question_Bank_Workflow.md`
+- `docs/operations/Content_Operations_SOP.md`
+- `docs/architecture/CMS_System_Architecture.md`
+- `docs/engineering/Local_Persistence_Design.md`
+- `docs/engineering/Database_ERD.md`
+- `docs/engineering/Release_Versioning.md`
+- `pubspec.yaml`
+- `pubspec.lock`
+
+### Technical Decisions
+
+- Treat deterministic validation and similarity scanning as gates, never as a
+  substitute for accountable human review.
+- Fingerprint all immutable pack/question meaning and refuse review evidence
+  when the digest or exact reviewed-question scope differs.
+- Keep validation and publication as separate forward-only actions with named
+  actors and timestamps.
+- Require corrected content to use a new content version and new immutable IDs
+  instead of mutating a reviewed artifact.
+- Do not create synthetic approval evidence or publish any repository pack on
+  behalf of a human reviewer.
+
+### Validation
+
+- JSON Schema syntax and draft CLI validate/list smoke test — PASS.
+- Focused review/codec/SQLite suite — PASS; 18 tests passed.
+- Immutable CLI review/publication integration test — PASS.
+- `dart format lib tool test` — PASS.
+- `flutter analyze` — PASS; no issues found.
+- `flutter test` — PASS; 43 tests passed.
+- `flutter build apk --debug` — PASS; version `0.9.0`, build `9`, 155 MB.
+- Android debug APK SHA-256 —
+  `c62ecec556f9eafefeab422bba082c805ff1876aa2831a1fa91dd4b9f4d13637`.
+- `flutter build ios --debug --no-codesign` — PASS; version `0.9.0`, build
+  `9`.
+
+### Result
+
+PASS
+
+### Next Step
+
+- Implement Step 10 Firebase authentication, server-enforced ownership,
+  provider-backed `SyncRemoteGateway`, and cross-device recovery.
+- Have a real human reviewer complete the documented workflow before treating
+  any question pack as official production content.
+
 ## 2026-09-06 — Connectivity-Aware Sync Worker and Pre-1.0 Versioning
 
 ### Objective

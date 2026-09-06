@@ -40,6 +40,9 @@ ExamSession: userId, testId, mode, start/end time, score, status, syncVersion.
 UserAnswer: sessionId, questionId, selectedAnswer, isSkipped, correctness, timeSpentMs, changedAnswer.
 WeaknessProfile: userId, taxonomyNodeId, score, confidence, sampleSize, trend.
 Recommendation: userId, targetNodeId, reasonCode, priority, actionType, generatedAt, expiry.
+QuestionPack: validationStatus, reviewer, reviewedAt, reviewNotes,
+provenanceDecision, provenanceNotes, contentSha256, reviewChecklist,
+publisher, publishedAt.
 SyncOutboxOperation: operationId, entityType, entityId, operation, payloadJson,
 createdAt, attempts, status, lastAttemptAt, nextAttemptAt, syncedAt,
 deadLetteredAt, acknowledgement, remoteRevision.
@@ -50,4 +53,10 @@ Firestore is appropriate for the initial mobile/backend workload. Add analytical
 ## Local Store
 Cache only data required for offline learning: published question packs, taxonomy snapshot, active session, answers, sync queue, recommendations, and AI cache.
 
-The implemented SQLite schema, transaction boundaries, recovery behavior, and migration policy are documented in `Local_Persistence_Design.md`. Session response, cancellation, expiry, and review behavior are documented in `Session_Controls_and_Review.md`. Delivery ordering, retry, acknowledgement, conflict, and retention rules are documented in `Sync_Architecture.md`.
+The implemented SQLite schema, transaction boundaries, recovery behavior, and
+migration policy are documented in `Local_Persistence_Design.md`. Session
+response, cancellation, expiry, and review behavior are documented in
+`Session_Controls_and_Review.md`. Delivery ordering, retry, acknowledgement,
+conflict, and retention rules are documented in `Sync_Architecture.md`. Human
+content review and publication are documented in
+`../operations/Human_Question_Review_Workflow.md`.
