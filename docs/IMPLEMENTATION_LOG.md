@@ -1,5 +1,109 @@
 # Implementation Log
 
+## 2026-09-06 — Connectivity-Aware Sync Worker and Pre-1.0 Versioning
+
+### Objective
+
+Turn the durable SQLite outbox into a safe, bounded delivery engine that can
+survive offline use, uncertain remote responses, retries, and conflicts without
+changing local deterministic learning behavior.
+
+### Implemented
+
+- Added a provider-neutral `SyncRemoteGateway` with accepted, duplicate,
+  superseded, retryable-failure, and permanent-rejection outcomes.
+- Added a `ConnectivityPlusMonitor` and startup/reconnect coordinator while
+  treating network transport as a trigger rather than proof of internet access.
+- Added a single-flight worker with stable queue ordering, batches of 25, a
+  maximum of ten batches per run, and structured run summaries.
+- Added exponential retry from five seconds to fifteen minutes, a five-attempt
+  cap, missing-acknowledgement recovery, and durable dead-letter quarantine.
+- Added explicit acknowledgement and optional remote-revision metadata.
+- Defined supersession as a completed upload that never rewrites local answers,
+  score, weakness, recommendation, or insight.
+- Added seven-day bounded pruning for acknowledged outbox rows and their synced
+  analytics sources while retaining learning data, pending work, and dead
+  letters.
+- Migrated SQLite from schema v4 to v5 and backfilled legacy synced operations.
+- Added real-SQLite/fake-remote coverage for offline reconnect, batching,
+  idempotent duplicates, supersession, transport ambiguity, rejection, retry
+  exhaustion, retention, and v1/v4→v5 migrations.
+- Added `connectivity_plus`, explicitly set the iOS minimum deployment target to
+  13.0, and validated the installed Android/iOS toolchain requirements.
+- Adopted `0.MINOR.PATCH+BUILD` for unreleased development and changed the app
+  version from `1.0.0+1` to `0.8.0+8`.
+- Added sync architecture and release-versioning guides and reconciled the
+  project handoff documentation.
+
+### Files Changed
+
+- `lib/services/sync/application/sync_worker.dart`
+- `lib/services/sync/application/sync_coordinator.dart`
+- `lib/services/sync/data/connectivity_plus_monitor.dart`
+- `lib/services/sync/domain/connectivity_monitor.dart`
+- `lib/services/sync/domain/sync_outbox_item.dart`
+- `lib/services/sync/domain/sync_outbox_repository.dart`
+- `lib/services/sync/domain/sync_remote_gateway.dart`
+- `lib/services/sync/domain/sync_retry_policy.dart`
+- `lib/services/sync/domain/sync_run_summary.dart`
+- `lib/features/learning/data/local_learning_persistence_repository.dart`
+- `lib/services/database/exam_coach_database.dart`
+- `test/services/sync/sync_worker_integration_test.dart`
+- `test/services/sync/sync_coordinator_test.dart`
+- `test/persistence/local_persistence_integration_test.dart`
+- `pubspec.yaml`
+- `pubspec.lock`
+- `ios/Podfile`
+- `ios/Podfile.lock`
+- `README.md`
+- `CONTRIBUTING.md`
+- `docs/README.md`
+- `docs/PROJECT_STATUS.md`
+- `docs/IMPLEMENTATION_LOG.md`
+- `docs/DECISION_LOG.md`
+- `docs/architecture/Backend_Service_Architecture.md`
+- `docs/engineering/Analytics_Event_Map.md`
+- `docs/engineering/Database_ERD.md`
+- `docs/engineering/Git_Workflow.md`
+- `docs/engineering/Local_Persistence_Design.md`
+- `docs/engineering/Release_Versioning.md`
+- `docs/engineering/Sync_Architecture.md`
+
+### Technical Decisions
+
+- Keep local commits authoritative and let the upload worker change delivery
+  metadata only.
+- Use stable operation IDs for remote idempotency and explicit per-operation
+  acknowledgement for uncertain batch delivery.
+- Treat remote supersession as successful delivery, leaving inbound
+  cross-device reconciliation to the authenticated remote milestone.
+- Keep the production gateway unwired until Firebase Auth, ownership, security
+  rules, and server revision enforcement exist in Step 10.
+- Separate semantic app versioning from SQLite schema versioning.
+
+### Validation
+
+- `dart format lib test` — PASS.
+- `flutter analyze` — PASS; no issues found.
+- Focused SQLite/sync suite — PASS; 17 tests passed.
+- `flutter test` — PASS; 37 tests passed.
+- `flutter build apk --debug` — PASS; version `0.8.0`, build `8`, 155 MB.
+- Android debug APK SHA-256 —
+  `b439675d71a60b1b02f1d3735540b50562da89f9cce0590acc4087f2afb0b417`.
+- `flutter build ios --debug --no-codesign` — PASS; version `0.8.0`, build
+  `8`.
+
+### Result
+
+PASS
+
+### Next Step
+
+- Implement Step 9 human review evidence, duplicate/similarity checks, and
+  immutable publication tooling for the question bank.
+- Implement and register the authenticated production sync gateway only with
+  the Step 10 Firebase/Auth boundary.
+
 ## 2026-09-06 — Resumable Session Controls and Answer Review
 
 ### Objective

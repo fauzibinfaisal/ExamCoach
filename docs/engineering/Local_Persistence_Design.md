@@ -14,12 +14,14 @@ The database is opened through `ExamCoachDatabase`, which accepts a `DatabaseFac
 
 ## Schema Version
 
-Current schema: `4`.
+Current schema: `5`.
 
 - Version 1: question packs, questions, exam sessions, user answers, weakness profiles, and recommendations.
 - Version 2: durable analytics events and the idempotent sync outbox.
 - Version 3: question-pack title, immutable tryout selection, AI generator metadata, author, and reviewer audit fields.
 - Version 4: explicit skipped-answer state for resumable response editing and review.
+- Version 5: sync scheduling, acknowledgement, remote-revision, dead-letter,
+  and retention metadata.
 
 Unknown migrations and database downgrades fail explicitly instead of silently rebuilding or deleting user data.
 
@@ -60,7 +62,14 @@ Analytics creation writes the event and its outbox operation in one transaction.
 analytics:<eventId>
 ```
 
-The outbox primary key makes retries idempotent. Answer and progress payloads replace their pending operation with the newest local version when edited. Failed attempts retain the operation, increment `attempts`, and record `last_error`. A successful analytics upload marks both the outbox operation and source analytics event as synced.
+The outbox primary key makes retries idempotent. Answer and progress payloads replace their pending operation with the newest local version when edited. Failed attempts retain the operation, increment `attempts`, record bounded `last_error` and `last_attempt_at`, and schedule `next_attempt_at`. A successful analytics upload transactionally marks both the outbox operation and source analytics event as synced.
+
+Delivery metadata records `synced_at`, `dead_lettered_at`, the remote
+acknowledgement (`accepted`, `duplicate`, or `superseded`), and an optional
+remote revision. Ready operations are ordered by `created_at` and
+`operation_id`. The worker uses five attempts, exponential delay from five
+seconds up to fifteen minutes, batches of 25, and at most ten batches per run.
+See `Sync_Architecture.md` for the full state machine and conflict contract.
 
 ## Recovery Flow
 
@@ -93,13 +102,15 @@ If database bootstrap itself fails, the application reports a Flutter error and 
 - Session completion + profile upserts + recommendation insert + completion outbox operation.
 - Analytics event + analytics outbox operation.
 - Mark analytics synced + update source event status.
+- Prune an old synced analytics outbox operation + its synced source event.
 
 ## Tests
 
 The integration suite uses temporary SQLite files and verifies:
 
 - schema creation and question-pack persistence;
-- migration from schema v1 through v2, v3, and v4;
+- migration from schema v1 through v2, v3, v4, and v5;
+- direct v4→v5 migration with acknowledgement backfill;
 - generated-pack metadata import, activation, and idempotent reload;
 - answer-by-answer persistence;
 - database close and reopen during an active tryout;
@@ -109,14 +120,16 @@ The integration suite uses temporary SQLite files and verifies:
 - durable cancellation and 24-hour expiry with completed-history isolation;
 - completed score, history, weakness, and recommendation restoration;
 - idempotent outbox insertion;
-- failed-attempt metadata and successful sync state;
-- durable analytics queue behavior.
+- failed-attempt scheduling, acknowledgement metadata, and dead-letter state;
+- durable analytics queue behavior;
+- offline→reconnect delivery, batched outcomes, retry limits, uncertain
+  delivery, and synced-retention cleanup.
 
 ## Deferred
 
-- Connectivity observer and background sync worker.
-- Retry backoff and dead-letter policy.
-- Remote acknowledgement protocol and conflict resolver.
-- Retention/pruning for completed sessions, synced analytics, and outbox records.
+- Authenticated Firebase gateway and runtime bootstrap wiring.
+- Cross-device download/reconciliation and server revision enforcement.
+- Operator inspection and controlled re-drive for dead-letter operations.
+- OS-scheduled background execution beyond startup/reconnect triggers.
 - Encryption policy for future account or sensitive data.
 - Download/update/retire lifecycle for production question packs.

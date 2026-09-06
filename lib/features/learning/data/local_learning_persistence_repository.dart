@@ -298,28 +298,80 @@ class LocalLearningPersistenceRepository
       'sync_outbox',
       where: 'status = ?',
       whereArgs: [SyncOutboxStatus.pending.name],
-      orderBy: 'created_at ASC',
+      orderBy: 'created_at ASC, operation_id ASC',
       limit: limit,
     );
     return List.unmodifiable(rows.map(_outboxFromRow));
   }
 
   @override
-  Future<void> markAttemptFailed(String operationId, String error) async {
+  Future<List<SyncOutboxItem>> getReady({
+    required DateTime now,
+    int limit = 50,
+  }) async {
     final database = await _database.instance;
+    final rows = await database.query(
+      'sync_outbox',
+      where: 'status = ? AND (next_attempt_at IS NULL OR next_attempt_at <= ?)',
+      whereArgs: [
+        SyncOutboxStatus.pending.name,
+        _ensureUtc(now).toIso8601String(),
+      ],
+      orderBy: 'created_at ASC, operation_id ASC',
+      limit: limit,
+    );
+    return List.unmodifiable(rows.map(_outboxFromRow));
+  }
+
+  @override
+  Future<void> markAttemptFailed(
+    String operationId,
+    String error, {
+    required DateTime attemptedAt,
+    DateTime? nextAttemptAt,
+    required bool deadLetter,
+  }) async {
+    final database = await _database.instance;
+    final attemptedAtUtc = _ensureUtc(attemptedAt);
     await database.rawUpdate(
       '''
       UPDATE sync_outbox
-      SET attempts = attempts + 1, last_error = ?, status = ?
-      WHERE operation_id = ?
-    ''',
-      [error, SyncOutboxStatus.pending.name, operationId],
+      SET attempts = attempts + 1,
+          last_error = ?,
+          last_attempt_at = ?,
+          next_attempt_at = ?,
+          status = ?,
+          dead_lettered_at = ?,
+          synced_at = NULL,
+          acknowledgement = NULL,
+          remote_revision = NULL
+      WHERE operation_id = ? AND status = ?
+      ''',
+      [
+        _boundedError(error),
+        attemptedAtUtc.toIso8601String(),
+        nextAttemptAt == null
+            ? null
+            : _ensureUtc(nextAttemptAt).toIso8601String(),
+        deadLetter
+            ? SyncOutboxStatus.deadLetter.name
+            : SyncOutboxStatus.pending.name,
+        deadLetter ? attemptedAtUtc.toIso8601String() : null,
+        operationId,
+        SyncOutboxStatus.pending.name,
+      ],
     );
   }
 
   @override
-  Future<void> markSynced(String operationId) async {
+  Future<void> markSynced(
+    String operationId, {
+    required DateTime syncedAt,
+    required SyncAcknowledgement acknowledgement,
+    int? remoteRevision,
+  }) async {
     final database = await _database.instance;
+    final syncedAtUtc = _ensureUtc(syncedAt);
     await database.transaction((transaction) async {
       final rows = await transaction.query(
         'sync_outbox',
@@ -333,7 +385,16 @@ class LocalLearningPersistenceRepository
       }
       await transaction.update(
         'sync_outbox',
-        {'status': SyncOutboxStatus.synced.name, 'last_error': null},
+        {
+          'status': SyncOutboxStatus.synced.name,
+          'last_error': null,
+          'last_attempt_at': syncedAtUtc.toIso8601String(),
+          'next_attempt_at': null,
+          'synced_at': syncedAtUtc.toIso8601String(),
+          'dead_lettered_at': null,
+          'acknowledgement': acknowledgement.name,
+          'remote_revision': remoteRevision,
+        },
         where: 'operation_id = ?',
         whereArgs: [operationId],
       );
@@ -345,6 +406,45 @@ class LocalLearningPersistenceRepository
           whereArgs: [rows.first['entity_id']],
         );
       }
+    });
+  }
+
+  @override
+  Future<int> pruneSynced({required DateTime before, int limit = 200}) async {
+    if (limit <= 0) {
+      return 0;
+    }
+    final database = await _database.instance;
+    return database.transaction((transaction) async {
+      final rows = await transaction.query(
+        'sync_outbox',
+        columns: const ['operation_id', 'entity_type', 'entity_id'],
+        where: 'status = ? AND synced_at IS NOT NULL AND synced_at < ?',
+        whereArgs: [
+          SyncOutboxStatus.synced.name,
+          _ensureUtc(before).toIso8601String(),
+        ],
+        orderBy: 'synced_at ASC',
+        limit: limit,
+      );
+      if (rows.isEmpty) {
+        return 0;
+      }
+      for (final row in rows) {
+        if (row['entity_type'] == 'analytics_event') {
+          await transaction.delete(
+            'analytics_events',
+            where: 'id = ? AND upload_status = ?',
+            whereArgs: [row['entity_id'], SyncOutboxStatus.synced.name],
+          );
+        }
+      }
+      final placeholders = List.filled(rows.length, '?').join(',');
+      return transaction.delete(
+        'sync_outbox',
+        where: 'operation_id IN ($placeholders)',
+        whereArgs: rows.map((row) => row['operation_id']).toList(),
+      );
     });
   }
 
@@ -511,6 +611,12 @@ class LocalLearningPersistenceRepository
         'attempts': 0,
         'status': SyncOutboxStatus.pending.name,
         'last_error': null,
+        'last_attempt_at': null,
+        'next_attempt_at': null,
+        'synced_at': null,
+        'dead_lettered_at': null,
+        'acknowledgement': null,
+        'remote_revision': null,
       },
       conflictAlgorithm: replaceExisting
           ? ConflictAlgorithm.replace
@@ -530,6 +636,25 @@ class LocalLearningPersistenceRepository
       attempts: row['attempts']! as int,
       status: SyncOutboxStatus.values.byName(row['status']! as String),
       lastError: row['last_error'] as String?,
+      lastAttemptAt: _dateTimeOrNull(row['last_attempt_at']),
+      nextAttemptAt: _dateTimeOrNull(row['next_attempt_at']),
+      syncedAt: _dateTimeOrNull(row['synced_at']),
+      deadLetteredAt: _dateTimeOrNull(row['dead_lettered_at']),
+      acknowledgement: row['acknowledgement'] == null
+          ? null
+          : SyncAcknowledgement.values.byName(
+              row['acknowledgement']! as String,
+            ),
+      remoteRevision: row['remote_revision'] as int?,
     );
   }
+
+  static DateTime _ensureUtc(DateTime value) =>
+      value.isUtc ? value : value.toUtc();
+
+  static DateTime? _dateTimeOrNull(Object? value) =>
+      value == null ? null : DateTime.parse(value as String);
+
+  static String _boundedError(String error) =>
+      error.length <= 500 ? error : error.substring(0, 500);
 }

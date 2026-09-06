@@ -5,7 +5,7 @@ class ExamCoachDatabase {
   ExamCoachDatabase({required this.databasePath, DatabaseFactory? factory})
     : _factory = factory ?? databaseFactory;
 
-  static const schemaVersion = 4;
+  static const schemaVersion = 5;
   static const fileName = 'exam_coach.sqlite';
 
   final String databasePath;
@@ -209,6 +209,10 @@ class ExamCoachDatabase {
       await database.transaction(_migrateSessionControlsV4);
       migratedVersion = 4;
     }
+    if (migratedVersion < 5 && newVersion >= 5) {
+      await database.transaction(_migrateSyncDeliveryV5);
+      migratedVersion = 5;
+    }
     if (migratedVersion != newVersion) {
       throw StateError(
         'Missing migration from schema $migratedVersion to $newVersion',
@@ -222,6 +226,36 @@ class ExamCoachDatabase {
     await executor.execute(
       'ALTER TABLE user_answers ADD COLUMN is_skipped INTEGER NOT NULL DEFAULT 0',
     );
+  }
+
+  static Future<void> _migrateSyncDeliveryV5(DatabaseExecutor executor) async {
+    final columns = await executor.rawQuery('PRAGMA table_info(sync_outbox)');
+    final columnNames = columns.map((column) => column['name']).toSet();
+    final additions = <String, String>{
+      'last_attempt_at': 'TEXT',
+      'next_attempt_at': 'TEXT',
+      'synced_at': 'TEXT',
+      'dead_lettered_at': 'TEXT',
+      'acknowledgement': 'TEXT',
+      'remote_revision': 'INTEGER',
+    };
+    for (final entry in additions.entries) {
+      if (!columnNames.contains(entry.key)) {
+        await executor.execute(
+          'ALTER TABLE sync_outbox ADD COLUMN ${entry.key} ${entry.value}',
+        );
+      }
+    }
+    await executor.execute('''
+      UPDATE sync_outbox
+      SET synced_at = created_at,
+          acknowledgement = 'accepted'
+      WHERE status = 'synced' AND synced_at IS NULL
+    ''');
+    await executor.execute('''
+      CREATE INDEX IF NOT EXISTS sync_outbox_ready_idx
+      ON sync_outbox(status, next_attempt_at, created_at)
+    ''');
   }
 
   static Future<void> _migrateContentMetadataV3(
@@ -297,12 +331,22 @@ class ExamCoachDatabase {
         created_at TEXT NOT NULL,
         attempts INTEGER NOT NULL DEFAULT 0,
         status TEXT NOT NULL DEFAULT 'pending',
-        last_error TEXT
+        last_error TEXT,
+        last_attempt_at TEXT,
+        next_attempt_at TEXT,
+        synced_at TEXT,
+        dead_lettered_at TEXT,
+        acknowledgement TEXT,
+        remote_revision INTEGER
       )
     ''');
     await executor.execute('''
       CREATE INDEX IF NOT EXISTS sync_outbox_status_created_idx
       ON sync_outbox(status, created_at)
+    ''');
+    await executor.execute('''
+      CREATE INDEX IF NOT EXISTS sync_outbox_ready_idx
+      ON sync_outbox(status, next_attempt_at, created_at)
     ''');
   }
 }

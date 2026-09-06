@@ -16,6 +16,8 @@ erDiagram
     USER ||--o{ AI_USAGE : consumes
     USER ||--o{ SUBSCRIPTION : owns
     USER ||--o{ ANALYTICS_EVENT : generates
+    EXAM_SESSION ||--o{ SYNC_OUTBOX_OPERATION : produces
+    ANALYTICS_EVENT ||--o| SYNC_OUTBOX_OPERATION : queued_as
 ```
 
 ## Core Entities
@@ -31,12 +33,16 @@ erDiagram
 - AIUsage
 - Subscription
 - AnalyticsEvent
+- SyncOutboxOperation
 
 ## Important Fields
 ExamSession: userId, testId, mode, start/end time, score, status, syncVersion.
 UserAnswer: sessionId, questionId, selectedAnswer, isSkipped, correctness, timeSpentMs, changedAnswer.
 WeaknessProfile: userId, taxonomyNodeId, score, confidence, sampleSize, trend.
 Recommendation: userId, targetNodeId, reasonCode, priority, actionType, generatedAt, expiry.
+SyncOutboxOperation: operationId, entityType, entityId, operation, payloadJson,
+createdAt, attempts, status, lastAttemptAt, nextAttemptAt, syncedAt,
+deadLetteredAt, acknowledgement, remoteRevision.
 
 ## Storage
 Firestore is appropriate for the initial mobile/backend workload. Add analytical warehouse/SQL infrastructure later when query volume or B2B analytics justify it.
@@ -44,4 +50,4 @@ Firestore is appropriate for the initial mobile/backend workload. Add analytical
 ## Local Store
 Cache only data required for offline learning: published question packs, taxonomy snapshot, active session, answers, sync queue, recommendations, and AI cache.
 
-The implemented SQLite schema, transaction boundaries, recovery behavior, and migration policy are documented in `Local_Persistence_Design.md`. Session response, cancellation, expiry, and review behavior are documented in `Session_Controls_and_Review.md`.
+The implemented SQLite schema, transaction boundaries, recovery behavior, and migration policy are documented in `Local_Persistence_Design.md`. Session response, cancellation, expiry, and review behavior are documented in `Session_Controls_and_Review.md`. Delivery ordering, retry, acknowledgement, conflict, and retention rules are documented in `Sync_Architecture.md`.

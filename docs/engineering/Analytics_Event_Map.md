@@ -56,7 +56,7 @@
   "userId": "user_id",
   "sessionId": "session_id",
   "timestamp": "ISO-8601",
-  "appVersion": "1.0.0",
+  "appVersion": "0.8.0",
   "platform": "ios",
   "properties": {
     "questionId": "q_123",
@@ -74,6 +74,11 @@
 - centralized event creation
 - offline queue
 - batch upload
+
+Upload acknowledgement is transactional with the analytics source record.
+Accepted, duplicate, and superseded operations mark the source synced; only old
+synced analytics are pruned. Pending and dead-letter events remain available for
+retry or diagnosis. See `Sync_Architecture.md`.
 
 ## Implemented Learning Events
 

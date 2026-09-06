@@ -58,6 +58,11 @@ Open a pull request into `develop`. Delete the feature branch after merge.
 5. Merge the release changes back into `develop` so version and stabilization
    fixes are retained.
 
+Application version and build-number rules are defined in
+`Release_Versioning.md`. During initial development, versions remain below
+`1.0.0`; production tags omit Flutter's `+BUILD` suffix and identify the exact
+released `main` commit.
+
 ## Hotfix Flow
 
 1. Create `hotfix/x.y.z` from the affected `main` release.
