@@ -12,6 +12,8 @@
 - question_answered
 - question_skipped
 - answer_changed
+- practice_cancelled
+- practice_expired
 - practice_completed
 - drill_started
 - drill_completed
@@ -22,6 +24,7 @@
 - recommendation_viewed
 - recommendation_clicked
 - recommendation_completed
+- question_review_viewed
 
 ### AI
 - ai_insight_requested
@@ -71,6 +74,26 @@
 - centralized event creation
 - offline queue
 - batch upload
+
+## Implemented Learning Events
+
+| Event | Trigger | Key properties |
+|---|---|---|
+| `practice_started` | Local tryout session is durably created | `sessionId`, `mode` |
+| `drill_started` | Recommended drill is durably created | `sessionId`, `mode` |
+| `question_answered` | Question receives its first selected answer, including a previously skipped question | `sessionId`, `questionId`, `taxonomyNodeId`, `isCorrect`, `timeSpentMs` |
+| `question_skipped` | Question is explicitly skipped | `sessionId`, `questionId`, `taxonomyNodeId`, `mode` |
+| `answer_changed` | A saved selected option/skip state changes | `sessionId`, `questionId`, `fromOptionId`, `toOptionId`, `isCorrect` |
+| `practice_cancelled` | User confirms cancellation of an active tryout or drill | `sessionId`, `mode`, `answeredCount`, `skippedCount` |
+| `practice_expired` | Recovery finds an active session inactive for more than 24 hours | `sessionId`, `mode`, `inactiveForMs` |
+| `practice_completed` | User explicitly finishes a reviewed tryout | `sessionId`, `score`, `skippedCount` |
+| `drill_completed` | User explicitly finishes a reviewed drill | `sessionId`, `score`, `skippedCount` |
+| `result_viewed` | Deterministic result becomes available | `sessionId` |
+| `question_review_viewed` | Post-result answer review opens | `sessionId`, `mode`, `questionCount`, `skippedCount` |
+
+Cancellation and expiry are terminal session outcomes, not completion events.
+Their partial answers must not affect weakness, recommendation, or improvement
+metrics.
 
 ## Key Outcomes
 Measure weakness before/after drills, accuracy/time improvement, readiness movement, recommendation effectiveness, retention, and conversion.

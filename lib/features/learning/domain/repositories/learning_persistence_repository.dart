@@ -17,6 +17,10 @@ abstract interface class LearningPersistenceRepository {
     required bool isCorrect,
   });
 
+  Future<void> updateSessionCursor(ExamSession session);
+
+  Future<void> endSession(ExamSession session);
+
   Future<void> completeSession({
     required ExamSession session,
     required ScoreResult score,

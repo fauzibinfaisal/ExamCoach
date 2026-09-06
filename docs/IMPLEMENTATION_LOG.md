@@ -1,5 +1,106 @@
 # Implementation Log
 
+## 2026-09-06 — Resumable Session Controls and Answer Review
+
+### Objective
+
+Let users skip and revise responses, explicitly review before scoring, safely
+cancel or recover sessions, and inspect answers after a result without weakening
+the deterministic offline learning loop.
+
+### Implemented
+
+- Added explicit skipped responses and sticky answer-change tracking with
+  accumulated time across edits.
+- Added previous-question navigation and saved-answer preselection.
+- Added a pre-submit review screen with answered/skipped counts and editing of
+  any response before an explicit finish action.
+- Added confirmation-based session cancellation from overview, active question,
+  and review flows; partial cancelled answers do not enter learning history.
+- Added bootstrap expiry for active sessions inactive for more than 24 hours;
+  expired partial answers remain excluded from learning insight.
+- Added direct recovery to the exact saved question or pre-submit review state.
+- Added post-result cards for user answer, correct answer, correctness status,
+  and explanation.
+- Added an entitlement-ready `QuestionReviewAccessPolicy`; the development
+  policy currently permits all local draft explanations.
+- Migrated SQLite from schema v3 to v4 with explicit `is_skipped` storage.
+- Added replaceable outbox operations for edited answers and session progress,
+  plus terminal cancellation and expiry operations.
+- Added centralized skip, change, cancellation, expiry, and question-review
+  analytics.
+- Expanded Cubit, SQLite integration, migration, and widget tests to cover the
+  new lifecycle end to end.
+- Added the session-control design and manual testing guide.
+
+### Files Changed
+
+- `lib/analytics/analytics_events.dart`
+- `lib/app/router.dart`
+- `lib/features/exam/domain/models/answer_record.dart`
+- `lib/features/home/presentation/home_page.dart`
+- `lib/features/learning/application/learning_flow_cubit.dart`
+- `lib/features/learning/application/learning_flow_state.dart`
+- `lib/features/learning/data/local_learning_persistence_repository.dart`
+- `lib/features/learning/data/transient_learning_persistence_repository.dart`
+- `lib/features/learning/domain/repositories/learning_persistence_repository.dart`
+- `lib/features/practice/presentation/question_page.dart`
+- `lib/features/practice/presentation/session_cancel_dialog.dart`
+- `lib/features/practice/presentation/session_review_page.dart`
+- `lib/features/practice/presentation/tryout_overview_page.dart`
+- `lib/features/result/domain/question_review_access_policy.dart`
+- `lib/features/result/presentation/answer_review_page.dart`
+- `lib/features/result/presentation/result_page.dart`
+- `lib/learning_engine/models/score_result.dart`
+- `lib/services/database/exam_coach_database.dart`
+- `test/features/learning/learning_flow_cubit_test.dart`
+- `test/persistence/local_persistence_integration_test.dart`
+- `test/widget_test.dart`
+- `README.md`
+- `docs/README.md`
+- `docs/PROJECT_STATUS.md`
+- `docs/IMPLEMENTATION_LOG.md`
+- `docs/DECISION_LOG.md`
+- `docs/engineering/Analytics_Event_Map.md`
+- `docs/engineering/Database_ERD.md`
+- `docs/engineering/Local_Persistence_Design.md`
+- `docs/engineering/Session_Controls_and_Review.md`
+
+### Technical Decisions
+
+- Treat answer and skip as equally durable response states, while scoring skips
+  as incorrect only after explicit session completion.
+- Require a pre-submit review transition instead of auto-scoring after the final
+  response.
+- Keep cancelled and expired sessions for audit/sync but exclude them from all
+  completed learning history.
+- Use a provisional 24-hour inactivity window until remote product
+  configuration exists.
+- Put explanation visibility behind a synchronous policy boundary without
+  implementing pricing or subscription rules prematurely.
+
+### Validation
+
+- `dart format lib test` — PASS.
+- `flutter analyze` — PASS; no issues found.
+- `flutter test` — PASS; 27 tests passed.
+- SQLite real-file integration suite — PASS; v1→v4 migration, response edits,
+  review recovery, cancellation, expiry, history isolation, and outbox verified.
+- Widget journey — PASS; cancel confirmation and
+  skip→edit→review→result→explanation→drill verified.
+- `flutter build apk --debug` — PASS.
+- `flutter build ios --debug --no-codesign` — PASS.
+
+### Result
+
+PASS
+
+### Next Step
+
+- Implement the connectivity-aware sync worker, retry/dead-letter policy,
+  remote acknowledgement, and fake-remote integration tests against the
+  existing outbox contract.
+
 ## 2026-09-06 — External-AI Question Bank Ingestion
 
 ### Objective

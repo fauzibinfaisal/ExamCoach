@@ -127,13 +127,20 @@ class LocalLearningPersistenceRepository
     required bool isCorrect,
   }) async {
     final database = await _database.instance;
+    final position = session.questionIds.indexOf(answer.questionId);
+    if (position < 0) {
+      throw StateError(
+        'Question ${answer.questionId} does not belong to session ${session.id}.',
+      );
+    }
     final answerRow = <String, Object?>{
       'session_id': session.id,
       'question_id': answer.questionId,
-      'position': session.currentIndex - 1,
-      'selected_option_id': answer.selectedOptionId,
+      'position': position,
+      'selected_option_id': answer.selectedOptionId ?? '',
       'correct_option_id': correctOptionId,
       'is_correct': isCorrect ? 1 : 0,
+      'is_skipped': answer.isSkipped ? 1 : 0,
       'time_spent_ms': answer.timeSpent.inMilliseconds,
       'changed_answer': answer.changedAnswer ? 1 : 0,
       'answered_at': answer.answeredAt.toIso8601String(),
@@ -165,6 +172,68 @@ class LocalLearningPersistenceRepository
         operation: 'upsert',
         payload: answerRow,
         createdAt: answer.answeredAt,
+        replaceExisting: true,
+      );
+    });
+  }
+
+  @override
+  Future<void> updateSessionCursor(ExamSession session) async {
+    final database = await _database.instance;
+    await database.transaction((transaction) async {
+      final updated = await transaction.update(
+        'exam_sessions',
+        {
+          'current_index': session.currentIndex,
+          'updated_at': session.updatedAt.toIso8601String(),
+          'sync_version': session.syncVersion,
+        },
+        where: 'id = ? AND status = ?',
+        whereArgs: [session.id, ExamSessionStatus.active.name],
+      );
+      if (updated != 1) {
+        throw StateError('Cannot move inactive session ${session.id}.');
+      }
+      await _insertOutbox(
+        transaction,
+        operationId: '${session.id}:progress',
+        entityType: 'exam_session',
+        entityId: session.id,
+        operation: 'progress',
+        payload: _sessionToRow(session),
+        createdAt: session.updatedAt,
+        replaceExisting: true,
+      );
+    });
+  }
+
+  @override
+  Future<void> endSession(ExamSession session) async {
+    if (session.status != ExamSessionStatus.cancelled &&
+        session.status != ExamSessionStatus.expired) {
+      throw ArgumentError(
+        'Session must be cancelled or expired before it can be ended.',
+      );
+    }
+    final database = await _database.instance;
+    await database.transaction((transaction) async {
+      final updated = await transaction.update(
+        'exam_sessions',
+        _sessionToRow(session),
+        where: 'id = ? AND status = ?',
+        whereArgs: [session.id, ExamSessionStatus.active.name],
+      );
+      if (updated != 1) {
+        throw StateError('Cannot end inactive session ${session.id}.');
+      }
+      await _insertOutbox(
+        transaction,
+        operationId: '${session.id}:${session.status.name}',
+        entityType: 'exam_session',
+        entityId: session.id,
+        operation: session.status.name,
+        payload: _sessionToRow(session),
+        createdAt: session.updatedAt,
       );
     });
   }
@@ -331,7 +400,9 @@ class LocalLearningPersistenceRepository
 
   static AnswerRecord _answerFromRow(Map<String, Object?> row) => AnswerRecord(
     questionId: row['question_id']! as String,
-    selectedOptionId: row['selected_option_id']! as String,
+    selectedOptionId: row['is_skipped'] == 1
+        ? null
+        : row['selected_option_id']! as String,
     timeSpent: Duration(milliseconds: row['time_spent_ms']! as int),
     answeredAt: DateTime.parse(row['answered_at']! as String),
     changedAnswer: row['changed_answer'] == 1,
@@ -340,7 +411,9 @@ class LocalLearningPersistenceRepository
   static AnswerEvaluation _evaluationFromRow(Map<String, Object?> row) =>
       AnswerEvaluation(
         questionId: row['question_id']! as String,
-        selectedOptionId: row['selected_option_id']! as String,
+        selectedOptionId: row['is_skipped'] == 1
+            ? null
+            : row['selected_option_id']! as String,
         correctOptionId: row['correct_option_id']! as String,
         isCorrect: row['is_correct'] == 1,
       );
@@ -424,18 +497,25 @@ class LocalLearningPersistenceRepository
     required String operation,
     required Map<String, Object?> payload,
     required DateTime createdAt,
+    bool replaceExisting = false,
   }) async {
-    await executor.insert('sync_outbox', {
-      'operation_id': operationId,
-      'entity_type': entityType,
-      'entity_id': entityId,
-      'operation': operation,
-      'payload_json': jsonEncode(payload),
-      'created_at': createdAt.toIso8601String(),
-      'attempts': 0,
-      'status': SyncOutboxStatus.pending.name,
-      'last_error': null,
-    }, conflictAlgorithm: ConflictAlgorithm.ignore);
+    await executor.insert(
+      'sync_outbox',
+      {
+        'operation_id': operationId,
+        'entity_type': entityType,
+        'entity_id': entityId,
+        'operation': operation,
+        'payload_json': jsonEncode(payload),
+        'created_at': createdAt.toIso8601String(),
+        'attempts': 0,
+        'status': SyncOutboxStatus.pending.name,
+        'last_error': null,
+      },
+      conflictAlgorithm: replaceExisting
+          ? ConflictAlgorithm.replace
+          : ConflictAlgorithm.ignore,
+    );
   }
 
   static SyncOutboxItem _outboxFromRow(Map<String, Object?> row) {

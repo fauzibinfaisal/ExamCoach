@@ -1,6 +1,7 @@
 import 'package:exam_coach/features/exam/domain/models/question.dart';
 import 'package:exam_coach/features/learning/application/learning_flow_cubit.dart';
 import 'package:exam_coach/features/learning/application/learning_flow_state.dart';
+import 'package:exam_coach/features/practice/presentation/session_cancel_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -24,67 +25,77 @@ class TryoutOverviewPage extends StatelessWidget {
           );
         }
 
-        return Scaffold(
-          appBar: AppBar(
-            leading: IconButton(
-              onPressed: () => context.go('/'),
-              icon: const Icon(Icons.close_rounded),
-              tooltip: 'Batalkan tryout',
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (!didPop) {
+              confirmAndCancelSession(context);
+            }
+          },
+          child: Scaffold(
+            appBar: AppBar(
+              leading: IconButton(
+                onPressed: state.isSaving
+                    ? null
+                    : () => confirmAndCancelSession(context),
+                icon: const Icon(Icons.close_rounded),
+                tooltip: 'Batalkan tryout',
+              ),
+              title: const Text('Ringkasan tryout'),
             ),
-            title: const Text('Ringkasan tryout'),
-          ),
-          body: SafeArea(
-            top: false,
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
-                    children: [
-                      Text(
-                        '6 soal untuk membaca pola awalmu',
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Jawab berurutan tanpa umpan balik langsung. Hasil dihitung setelah semua soal selesai.',
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                      const SizedBox(height: 24),
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Column(
-                            children: [
-                              for (
-                                var index = 0;
-                                index < state.questions.length;
-                                index++
-                              )
-                                _QuestionListItem(
-                                  index: index,
-                                  question: state.questions[index],
-                                  showDivider:
-                                      index < state.questions.length - 1,
-                                ),
-                            ],
+            body: SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+                      children: [
+                        Text(
+                          '6 soal untuk membaca pola awalmu',
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Jawab sesuai urutan atau lewati sementara. Sebelum hasil dihitung, kamu bisa memeriksa dan mengubah semua respons.',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: 24),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Column(
+                              children: [
+                                for (
+                                  var index = 0;
+                                  index < state.questions.length;
+                                  index++
+                                )
+                                  _QuestionListItem(
+                                    index: index,
+                                    question: state.questions[index],
+                                    showDivider:
+                                        index < state.questions.length - 1,
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.fromLTRB(24, 14, 24, 18),
-                  color: Colors.white,
-                  child: FilledButton.icon(
-                    key: const Key('begin-session-button'),
-                    onPressed: () => context.go('/session'),
-                    icon: const Icon(Icons.arrow_forward_rounded),
-                    label: const Text('Mulai menjawab'),
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(24, 14, 24, 18),
+                    color: Colors.white,
+                    child: FilledButton.icon(
+                      key: const Key('begin-session-button'),
+                      onPressed: () => context.go('/session'),
+                      icon: const Icon(Icons.arrow_forward_rounded),
+                      label: const Text('Mulai menjawab'),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );

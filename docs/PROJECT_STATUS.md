@@ -2,21 +2,42 @@
 
 ## Current Phase
 
-Phase 6 provider-neutral AI draft ingestion is complete. The next phase is session controls, human question review, and the first sync worker boundary.
+Phase 7 resumable session controls and answer review is complete. The next phase is the first connectivity-aware sync worker over the existing transactional outbox.
 
 ## Overall Progress
 
 The deterministic learning loop now runs offline and survives application/database restarts:
 
 ```text
-Home → Tryout overview → Question detail → Answer → Local commit
-→ Score → Weakness analysis → Recommendation → Adaptive drill
+Home → Tryout overview → Answer or skip → Local commit → Pre-submit review
+→ Edit or explicitly finish → Score → Answer/explanation review
+→ Weakness analysis → Recommendation → Adaptive drill
 → Updated insight → Persisted history
 ```
 
 Question packs, active sessions, answers, results, weakness profiles, recommendations, analytics events, and sync operations are stored in versioned SQLite. Backend synchronization, authentication, AI, subscriptions, and production content are not implemented yet.
 
 External AI tools can now produce versioned JSON question packs for deterministic local validation and asset import. ExamCoach does not call AI at runtime; generated content remains `draft` and is revalidated before transactional SQLite ingestion.
+
+## 12-Step Delivery Roadmap
+
+| Step | Milestone | Status |
+|---:|---|---|
+| 1 | Repository audit and persistent handoff baseline | Complete |
+| 2 | Flutter shell and deterministic end-to-end learning loop | Complete |
+| 3 | Offline SQLite persistence, recovery, analytics queue, and outbox | Complete |
+| 4 | GitHub repository publication | Complete |
+| 5 | Protected Git Flow with `develop` integration | Complete |
+| 6 | Provider-neutral external-AI question-bank ingestion | Complete |
+| 7 | Skip/edit/cancel/expiry and pre/post-result review | Complete |
+| 8 | Connectivity-aware sync worker, retry, acknowledgement, and conflict policy | Next |
+| 9 | Human content review, similarity checks, and immutable publication | Planned |
+| 10 | Firebase authentication, remote data, and cross-device recovery | Planned |
+| 11 | Structured AI Coach, quota, entitlements, and subscriptions | Planned |
+| 12 | Product analytics, accessibility, performance, CI, and release readiness | Planned |
+
+Current position: **Step 7 of 12 complete**. Integration target is `develop`;
+`main` remains unchanged until owner testing and release approval.
 
 ## Completed
 
@@ -50,23 +71,30 @@ External AI tools can now produce versioned JSON question packs for deterministi
 - Added SQLite schema v3 for pack generation, author, reviewer, and immutable tryout-selection metadata.
 - Added tested v1→v2→v3 migration and idempotent generated-pack import.
 - Rebuilt Android and iOS debug artifacts with the question-bank asset manifest.
+- Added durable answer skipping, backwards navigation, saved-answer preselection, and sticky answer-change tracking.
+- Added pre-submit review with explicit completion and edit-any-question navigation.
+- Added confirmation-based cancellation and 24-hour inactive-session expiry that exclude partial responses from learning history.
+- Added exact recovery into an active question or completed-response review state.
+- Added post-result selected/correct answer and explanation review behind an entitlement-ready access policy.
+- Added SQLite schema v4, replaceable answer/progress outbox payloads, terminal session operations, and tested v1→v4 migration.
+- Added centralized cancellation, expiry, skip, answer-change, and question-review analytics.
+- Added full Cubit, SQLite, and widget coverage for the new lifecycle; the suite now contains 27 passing tests.
+- Rebuilt Android and unsigned iOS debug artifacts after the session-control milestone.
 
 ## Currently Working On
 
-No implementation is in progress. The offline persistence milestone is closed and validated.
+No implementation is in progress. Step 7 is closed and validated; the short-lived feature branch is ready for integration into `develop`.
 
 ## Next Steps
 
-1. Add explicit answer skipping and answer-change tracking using the centralized `question_skipped` and `answer_changed` events.
-2. Add session cancellation and expiry, including safe resolution of abandoned active sessions.
-3. Add post-session question review with selected answer, correct answer, and explanation behind an entitlement-ready access policy.
-4. Implement a connectivity observer and sync worker that consumes `SyncOutboxRepository` in batches.
-5. Define retry backoff, remote acknowledgement, dead-letter handling, and conflict resolution without changing local learning results.
-6. Add a fake-remote integration suite for offline → reconnect → acknowledge → local cleanup behavior.
-7. Add retention/pruning for completed sessions, synced analytics, and synced outbox records.
-8. Build human review, similarity checking, and immutable promotion tooling; publish only reviewer-approved packs.
-9. Confirm final Android/iOS application identifiers before release configuration.
-10. Add CI for formatting, static analysis, tests, and mobile build smoke checks, then make those checks required on `main` and `develop`.
+1. Define the sync state machine and connectivity observer without coupling network state to local scoring/progression.
+2. Implement a batched worker over `SyncOutboxRepository` with retry backoff, remote acknowledgement, and dead-letter handling.
+3. Define last-write/version conflict behavior for answer edits, progress, cancellation, expiry, and completion.
+4. Add a fake remote and integration suite for offline → reconnect → retry/acknowledge → local cleanup.
+5. Add retention/pruning for completed sessions, synced analytics, and synced outbox records.
+6. Build human review, similarity checking, and immutable promotion tooling; publish only reviewer-approved packs.
+7. Confirm final Android/iOS application identifiers before release configuration.
+8. Add CI for formatting, static analysis, tests, and mobile build smoke checks, then make those checks required on `main` and `develop`.
 
 ## Blockers
 
@@ -77,8 +105,8 @@ No implementation is in progress. The offline persistence milestone is closed an
 
 - The outbox is durable, but there is no connectivity observer or remote sync worker yet.
 - Synced data is not pruned, so local storage can grow over time.
-- Session cancellation, expiry, answer skipping, and answer-change analytics are not implemented yet.
-- Question review and entitlement-aware explanation access are not implemented yet.
+- The 24-hour session expiry is a provisional local default and is not remotely configurable yet.
+- Explanation access has a policy boundary, but the development policy allows all draft explanations until trusted subscription entitlements exist.
 - Database bootstrap fallback is transient; data created during fallback is intentionally not durable.
 - Weakness v1 does not yet model recency decay, consistency across sessions, or repeated-attempt penalties separately.
 - Adaptive drill v1 does not yet implement spaced repetition, fatigue, or difficulty progression.
@@ -87,6 +115,7 @@ No implementation is in progress. The offline persistence milestone is closed an
 - AI pack validation verifies structure and internal consistency, not factual correctness, originality, ambiguity, or calibrated difficulty.
 - AI pack promotion to `validated` is intentionally not implemented; generated packs remain development-only drafts.
 - New asset packs require a fresh app build before they can reach an installed device.
+- Answer and session-progress outbox payloads use latest-local-write replacement; remote version/conflict handling is not implemented yet.
 
 ## Technical Decisions
 
@@ -104,6 +133,11 @@ No implementation is in progress. The offline persistence milestone is closed an
 - `ai_question_pack_v1` is the canonical generated-content contract, and accepted pack/question IDs are immutable.
 - The question-bank manifest selects the active tryout; unseen bundled packs are inserted into SQLite transactionally.
 - Machine validation cannot promote AI content beyond `draft`; human review remains mandatory.
+- A response is either an answer or an explicit skip; scoring is review-gated and runs only after explicit session completion.
+- Cancelled and expired session rows are retained for audit/sync, while their partial answers are excluded from learning evidence.
+- Active sessions expire after a provisional 24 hours of inactivity during bootstrap recovery.
+- Explanation visibility is routed through `QuestionReviewAccessPolicy`; the current development policy allows all local draft explanations.
+- SQLite schema v4 adds explicit skipped-response state while keeping nullable semantics in the domain.
 - Weakness v1 uses configurable 65% accuracy, 20% speed, and 15% difficulty-handling weights, with two samples required for weak classification and five for full confidence.
 - Adaptive drill v1 uses largest-remainder allocation for the configurable 70/20/10 policy and prioritizes unseen questions within each tier.
 
@@ -126,14 +160,23 @@ No implementation is in progress. The offline persistence milestone is closed an
 - `lib/features/learning/domain/models/learning_persistence_snapshot.dart`
 - `lib/features/learning/domain/repositories/learning_persistence_repository.dart`
 - `lib/features/practice/presentation/question_page.dart`
+- `lib/features/practice/presentation/session_cancel_dialog.dart`
+- `lib/features/practice/presentation/session_review_page.dart`
+- `lib/features/practice/presentation/tryout_overview_page.dart`
+- `lib/features/result/domain/question_review_access_policy.dart`
+- `lib/features/result/presentation/answer_review_page.dart`
 - `lib/features/result/presentation/result_page.dart`
 - `lib/services/database/exam_coach_database.dart`
 - `lib/services/sync/domain/sync_outbox_item.dart`
 - `lib/services/sync/domain/sync_outbox_repository.dart`
 - `test/features/learning/learning_flow_cubit_test.dart`
 - `test/persistence/local_persistence_integration_test.dart`
+- `test/widget_test.dart`
 - `ios/Podfile.lock`
 - `docs/engineering/Local_Persistence_Design.md`
+- `docs/engineering/Session_Controls_and_Review.md`
+- `docs/engineering/Analytics_Event_Map.md`
+- `docs/engineering/Database_ERD.md`
 - `lib/features/exam/data/bundled_question_bank_loader.dart`
 - `lib/features/exam/data/question_bank_manifest.dart`
 - `lib/features/exam/data/question_pack_codec.dart`
@@ -168,6 +211,11 @@ No implementation is in progress. The offline persistence milestone is closed an
 - 2026-09-06: AI question CLI validation/import/list smoke test — PASS in an isolated temporary bank.
 - 2026-09-06: `flutter build apk --debug` — PASS; bundled question-bank manifest verified inside the APK.
 - 2026-09-06: `flutter build ios --debug --no-codesign` — PASS.
+- 2026-09-06: `dart format lib test` — PASS for Step 7 session controls and review.
+- 2026-09-06: `flutter analyze` — PASS; no issues found after Step 7.
+- 2026-09-06: `flutter test` — PASS; 27 tests passed, including skip/edit/cancel/expiry/review and SQLite v1→v4 migration.
+- 2026-09-06: `flutter build apk --debug` — PASS; latest installable debug APK created.
+- 2026-09-06: `flutter build ios --debug --no-codesign` — PASS; latest unsigned `Runner.app` created.
 
 ## Documentation Updated
 
@@ -176,7 +224,8 @@ No implementation is in progress. The offline persistence milestone is closed an
 - 2026-09-06: Recorded repository initialization, GitHub publication, and the CI follow-up.
 - 2026-09-06: Added the Git Flow guide, contributor guide, PR template, decision record, and branch-protection handoff.
 - 2026-09-06: Added the external-AI question generation/import guide, JSON schema, prompt, example, persistence changes, decision record, and validation results.
+- 2026-09-06: Added the session-control/review design and manual QA guide; updated roadmap, lifecycle, schema v4, analytics, ERD, decision, and implementation records.
 
 ## Notes For Next AI Session
 
-Read this file, `IMPLEMENTATION_LOG.md`, `DECISION_LOG.md`, `engineering/Git_Workflow.md`, `engineering/Local_Persistence_Design.md`, and `operations/AI_Question_Bank_Workflow.md` before changing code. Keep current solo development on `develop` and merge to `main` only after full validation and owner approval. Begin with skip/change/cancel/review behavior, then implement the sync worker against the existing outbox contract. Do not couple remote or AI failures to local scoring, and do not promote any generated pack beyond `draft` without human review.
+Read this file, `IMPLEMENTATION_LOG.md`, `DECISION_LOG.md`, `engineering/Git_Workflow.md`, `engineering/Local_Persistence_Design.md`, `engineering/Session_Controls_and_Review.md`, and `operations/AI_Question_Bank_Workflow.md` before changing code. Keep current solo development integrated through short-lived branches into `develop`, and merge to `main` only after full validation and owner approval. Step 7 of 12 is complete; begin Step 8 with the sync state machine, connectivity observer, retry/acknowledgement policy, and fake-remote tests against the existing outbox contract. Do not couple remote or AI failures to local scoring, and do not promote any generated pack beyond `draft` without human review.

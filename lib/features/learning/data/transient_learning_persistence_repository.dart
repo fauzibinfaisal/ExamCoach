@@ -17,6 +17,9 @@ class TransientLearningPersistenceRepository
   }) async {}
 
   @override
+  Future<void> endSession(ExamSession session) async {}
+
+  @override
   Future<LearningPersistenceSnapshot> loadSnapshot() async =>
       const LearningPersistenceSnapshot();
 
@@ -30,4 +33,7 @@ class TransientLearningPersistenceRepository
 
   @override
   Future<void> startSession(ExamSession session) async {}
+
+  @override
+  Future<void> updateSessionCursor(ExamSession session) async {}
 }

@@ -5,7 +5,7 @@ import 'package:exam_coach/learning_engine/models/recommendation.dart';
 import 'package:exam_coach/learning_engine/models/score_result.dart';
 import 'package:exam_coach/learning_engine/models/weakness_profile.dart';
 
-enum LearningFlowStatus { idle, answering, result }
+enum LearningFlowStatus { idle, answering, reviewing, result }
 
 class LearningFlowState {
   const LearningFlowState({
@@ -41,8 +41,27 @@ class LearningFlowState {
   ExamSessionMode get mode => session?.mode ?? ExamSessionMode.tryout;
 
   bool get hasActiveSession =>
-      status == LearningFlowStatus.answering &&
+      (status == LearningFlowStatus.answering ||
+          status == LearningFlowStatus.reviewing) &&
       session?.status == ExamSessionStatus.active;
+
+  int get answeredCount =>
+      currentAnswers.where((answer) => !answer.isSkipped).length;
+
+  int get skippedCount =>
+      currentAnswers.where((answer) => answer.isSkipped).length;
+
+  bool get allQuestionsResponded =>
+      questions.isNotEmpty && currentAnswers.length == questions.length;
+
+  AnswerRecord? answerFor(String questionId) {
+    for (final answer in currentAnswers) {
+      if (answer.questionId == questionId) {
+        return answer;
+      }
+    }
+    return null;
+  }
 
   Question? get currentQuestion {
     if (questions.isEmpty || currentIndex >= questions.length) {

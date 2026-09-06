@@ -3,11 +3,12 @@
 ExamCoach is a Flutter application for personalized, insight-led exam preparation. The current milestone provides a durable offline-first learning loop using local draft content:
 
 ```text
-Tryout overview → Answer questions → Score → Weakness analysis
-→ Explainable recommendation → Adaptive drill → Updated insight
+Tryout overview → Answer or skip → Pre-submit review → Score
+→ Answer/explanation review → Weakness analysis → Explainable recommendation
+→ Adaptive drill → Updated insight
 ```
 
-SQLite stores downloaded prototype content, active sessions, answers, learning history, recommendations, analytics, and an idempotent sync outbox. An interrupted tryout can be resumed after relaunch.
+SQLite stores downloaded prototype content, active sessions, answers/skips, learning history, recommendations, analytics, and an idempotent sync outbox. Interrupted question and pre-submit review states can be resumed after relaunch; cancelled or expired partial sessions do not affect learning insight.
 
 The deterministic learning engine is the source of truth. AI integration is intentionally not part of scoring, correctness, weakness analysis, or question selection.
 
@@ -53,6 +54,7 @@ Read these documents before changing implementation:
 - `docs/DECISION_LOG.md`
 - `docs/README.md`
 - `docs/engineering/Git_Workflow.md`
+- `docs/engineering/Session_Controls_and_Review.md`
 - `docs/operations/AI_Question_Bank_Workflow.md`
 
 ## Development workflow

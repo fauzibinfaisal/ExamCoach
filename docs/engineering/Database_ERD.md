@@ -34,7 +34,7 @@ erDiagram
 
 ## Important Fields
 ExamSession: userId, testId, mode, start/end time, score, status, syncVersion.
-UserAnswer: sessionId, questionId, selectedAnswer, correctness, timeSpentMs, changedAnswer.
+UserAnswer: sessionId, questionId, selectedAnswer, isSkipped, correctness, timeSpentMs, changedAnswer.
 WeaknessProfile: userId, taxonomyNodeId, score, confidence, sampleSize, trend.
 Recommendation: userId, targetNodeId, reasonCode, priority, actionType, generatedAt, expiry.
 
@@ -44,4 +44,4 @@ Firestore is appropriate for the initial mobile/backend workload. Add analytical
 ## Local Store
 Cache only data required for offline learning: published question packs, taxonomy snapshot, active session, answers, sync queue, recommendations, and AI cache.
 
-The implemented SQLite schema, transaction boundaries, recovery behavior, and migration policy are documented in `Local_Persistence_Design.md`.
+The implemented SQLite schema, transaction boundaries, recovery behavior, and migration policy are documented in `Local_Persistence_Design.md`. Session response, cancellation, expiry, and review behavior are documented in `Session_Controls_and_Review.md`.

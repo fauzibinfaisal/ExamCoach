@@ -143,6 +143,7 @@ class _ResumeSessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isReviewing = state.status == LearningFlowStatus.reviewing;
     final current = state.currentIndex + 1;
     final total = state.questions.length;
     return Card(
@@ -166,15 +167,18 @@ class _ResumeSessionCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Lanjut dari soal $current dari $total. Jawaban sebelumnya sudah tersimpan di perangkat.',
+              isReviewing
+                  ? 'Semua $total soal sudah direspons. Periksa jawaban sebelum hasil dihitung.'
+                  : 'Lanjut dari soal $current dari $total. Jawaban sebelumnya sudah tersimpan di perangkat.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 18),
             FilledButton.icon(
               key: const Key('resume-session-button'),
-              onPressed: () => context.go('/session'),
+              onPressed: () =>
+                  context.go(isReviewing ? '/session-review' : '/session'),
               icon: const Icon(Icons.restore_rounded),
-              label: const Text('Lanjutkan sesi'),
+              label: Text(isReviewing ? 'Periksa jawaban' : 'Lanjutkan sesi'),
             ),
           ],
         ),

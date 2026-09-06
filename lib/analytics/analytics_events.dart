@@ -1,6 +1,11 @@
 abstract final class AnalyticsEvents {
   static const practiceStarted = 'practice_started';
   static const questionAnswered = 'question_answered';
+  static const questionSkipped = 'question_skipped';
+  static const answerChanged = 'answer_changed';
+  static const practiceCancelled = 'practice_cancelled';
+  static const practiceExpired = 'practice_expired';
+  static const questionReviewViewed = 'question_review_viewed';
   static const practiceCompleted = 'practice_completed';
   static const drillStarted = 'drill_started';
   static const drillCompleted = 'drill_completed';
