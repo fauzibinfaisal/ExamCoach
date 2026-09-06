@@ -104,8 +104,8 @@ Current position: **Step 8 of 12 complete (66.7%)**. Integration target is `deve
 
 ## Currently Working On
 
-No implementation is in progress. Step 8 is closed and validated for integration
-into `develop`. `main` remains unchanged.
+No implementation is in progress. Step 8 is closed, validated, and integrated
+into `develop` through GitHub pull request #5. `main` remains unchanged.
 
 ## Next Steps
 
@@ -281,6 +281,8 @@ into `develop`. `main` remains unchanged.
   `b439675d71a60b1b02f1d3735540b50562da89f9cce0590acc4087f2afb0b417`).
 - 2026-09-06: `flutter build ios --debug --no-codesign` — PASS; unsigned
   `Runner.app` embeds version `0.8.0`, build `8`.
+- 2026-09-06: Git Flow integration — PASS; pull request #5 merged Step 8 into
+  `develop`, the feature branch was removed, and `main` remained unchanged.
 
 ## Documentation Updated
 
