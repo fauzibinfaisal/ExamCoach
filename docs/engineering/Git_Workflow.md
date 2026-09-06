@@ -80,3 +80,11 @@ At minimum, normal pull requests must pass formatting, `flutter analyze`, and
 `flutter test`. Release pull requests must also pass Android and unsigned iOS
 build validation.
 
+## GitHub Enforcement
+
+Both `main` and `develop` require pull requests and resolved review
+conversations. Force pushes and branch deletion are disabled, including for
+repository administrators. The approval count is temporarily zero because the
+repository currently has a single owner; increase it to at least one when a
+second reviewer is available. Required status checks must be enabled as soon as
+the CI workflow supplies stable check names.
