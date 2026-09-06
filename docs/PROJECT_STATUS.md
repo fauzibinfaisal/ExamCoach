@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 5 offline persistence foundation is complete. The next phase is session controls, question review, and the first sync worker boundary.
+Phase 6 provider-neutral AI draft ingestion is complete. The next phase is session controls, human question review, and the first sync worker boundary.
 
 ## Overall Progress
 
@@ -15,6 +15,8 @@ Home → Tryout overview → Question detail → Answer → Local commit
 ```
 
 Question packs, active sessions, answers, results, weakness profiles, recommendations, analytics events, and sync operations are stored in versioned SQLite. Backend synchronization, authentication, AI, subscriptions, and production content are not implemented yet.
+
+External AI tools can now produce versioned JSON question packs for deterministic local validation and asset import. ExamCoach does not call AI at runtime; generated content remains `draft` and is revalidated before transactional SQLite ingestion.
 
 ## Completed
 
@@ -41,6 +43,13 @@ Question packs, active sessions, answers, results, weakness profiles, recommenda
 - Established `develop` as the default integration branch with standard Git Flow branch prefixes.
 - Protected `main` and `develop` with pull-request, resolved-conversation, no-force-push, and no-deletion rules.
 - Added the contributor workflow, Git Flow engineering guide, and pull request template.
+- Added an AI-provider-neutral JSON contract, prompt template, example pack, validator, importer, and bank manifest.
+- Added deterministic checks for schema version, identifiers, answer references, taxonomy, duplicates, durations, authorship, provenance, and six-question tryout selection.
+- Enforced `draft` status and null reviewer metadata for all AI-generated imports.
+- Added manifest-selected active packs while retaining older packs for session/history integrity.
+- Added SQLite schema v3 for pack generation, author, reviewer, and immutable tryout-selection metadata.
+- Added tested v1→v2→v3 migration and idempotent generated-pack import.
+- Rebuilt Android and iOS debug artifacts with the question-bank asset manifest.
 
 ## Currently Working On
 
@@ -55,7 +64,7 @@ No implementation is in progress. The offline persistence milestone is closed an
 5. Define retry backoff, remote acknowledgement, dead-letter handling, and conflict resolution without changing local learning results.
 6. Add a fake-remote integration suite for offline → reconnect → acknowledge → local cleanup behavior.
 7. Add retention/pruning for completed sessions, synced analytics, and synced outbox records.
-8. Route the prototype content through human review and publish only a validated pack.
+8. Build human review, similarity checking, and immutable promotion tooling; publish only reviewer-approved packs.
 9. Confirm final Android/iOS application identifiers before release configuration.
 10. Add CI for formatting, static analysis, tests, and mobile build smoke checks, then make those checks required on `main` and `develop`.
 
@@ -75,6 +84,9 @@ No implementation is in progress. The offline persistence milestone is closed an
 - Adaptive drill v1 does not yet implement spaced repetition, fatigue, or difficulty progression.
 - Prototype questions are `draft`, not published content.
 - Android uses `id.examcoach.exam_coach`; iOS uses generated identifier `id.examcoach.examCoach`. These are provisional.
+- AI pack validation verifies structure and internal consistency, not factual correctness, originality, ambiguity, or calibrated difficulty.
+- AI pack promotion to `validated` is intentionally not implemented; generated packs remain development-only drafts.
+- New asset packs require a fresh app build before they can reach an installed device.
 
 ## Technical Decisions
 
@@ -88,6 +100,10 @@ No implementation is in progress. The offline persistence milestone is closed an
 - Analytics failures never block scoring or progression; successful local analytics writes are durable and queued.
 - `main` is the release branch, `develop` is the default integration branch, and `origin` points to `https://github.com/fauzibinfaisal/ExamCoach.git`.
 - Normal implementation uses `feature/*` or `bugfix/*` from `develop`; releases and production fixes use `release/*` and `hotfix/*` respectively.
+- External AI integration is file-based and provider-neutral; no AI credentials or runtime AI dependency enter the mobile app.
+- `ai_question_pack_v1` is the canonical generated-content contract, and accepted pack/question IDs are immutable.
+- The question-bank manifest selects the active tryout; unseen bundled packs are inserted into SQLite transactionally.
+- Machine validation cannot promote AI content beyond `draft`; human review remains mandatory.
 - Weakness v1 uses configurable 65% accuracy, 20% speed, and 15% difficulty-handling weights, with two samples required for weak classification and five for full confidence.
 - Adaptive drill v1 uses largest-remainder allocation for the configurable 70/20/10 policy and prioritizes unseen questions within each tier.
 
@@ -118,6 +134,17 @@ No implementation is in progress. The offline persistence milestone is closed an
 - `test/persistence/local_persistence_integration_test.dart`
 - `ios/Podfile.lock`
 - `docs/engineering/Local_Persistence_Design.md`
+- `lib/features/exam/data/bundled_question_bank_loader.dart`
+- `lib/features/exam/data/question_bank_manifest.dart`
+- `lib/features/exam/data/question_pack_codec.dart`
+- `lib/features/exam/domain/models/question_pack.dart`
+- `tool/question_bank.dart`
+- `assets/question_bank/manifest.json`
+- `content/question_pack.schema.json`
+- `content/ai_question_prompt.md`
+- `content/examples/question_pack.example.json`
+- `test/features/exam/question_pack_codec_test.dart`
+- `docs/operations/AI_Question_Bank_Workflow.md`
 - `docs/engineering/Git_Workflow.md`
 - `docs/PROJECT_STATUS.md`
 - `docs/IMPLEMENTATION_LOG.md`
@@ -135,6 +162,12 @@ No implementation is in progress. The offline persistence milestone is closed an
 - 2026-09-05: `flutter build ios --debug --no-codesign` — PASS; `build/ios/iphoneos/Runner.app` created.
 - 2026-09-06: GitHub publication — PASS; `main` created on `origin` and local tracking configured.
 - 2026-09-06: Git Flow setup — PASS; `develop` is the GitHub default, both long-lived branches are protected, and prefix configuration is present locally.
+- 2026-09-06: `dart format --output=none --set-exit-if-changed lib tool test` — PASS.
+- 2026-09-06: `flutter analyze` — PASS; no issues found.
+- 2026-09-06: `flutter test` — PASS; 21 tests passed.
+- 2026-09-06: AI question CLI validation/import/list smoke test — PASS in an isolated temporary bank.
+- 2026-09-06: `flutter build apk --debug` — PASS; bundled question-bank manifest verified inside the APK.
+- 2026-09-06: `flutter build ios --debug --no-codesign` — PASS.
 
 ## Documentation Updated
 
@@ -142,7 +175,8 @@ No implementation is in progress. The offline persistence milestone is closed an
 - 2026-09-05: Updated project status, implementation log, decision log, and documentation reading order.
 - 2026-09-06: Recorded repository initialization, GitHub publication, and the CI follow-up.
 - 2026-09-06: Added the Git Flow guide, contributor guide, PR template, decision record, and branch-protection handoff.
+- 2026-09-06: Added the external-AI question generation/import guide, JSON schema, prompt, example, persistence changes, decision record, and validation results.
 
 ## Notes For Next AI Session
 
-Read this file, `IMPLEMENTATION_LOG.md`, `DECISION_LOG.md`, `engineering/Git_Workflow.md`, and `engineering/Local_Persistence_Design.md` before changing code. Start normal work from current `develop` in a focused `feature/*` or `bugfix/*` branch and merge it back through a pull request. Begin with skip/change/cancel/review behavior, then implement the sync worker against the existing outbox contract. Do not couple remote failures to local scoring, and do not promote the prototype pack beyond `draft` without human review.
+Read this file, `IMPLEMENTATION_LOG.md`, `DECISION_LOG.md`, `engineering/Git_Workflow.md`, `engineering/Local_Persistence_Design.md`, and `operations/AI_Question_Bank_Workflow.md` before changing code. Keep current solo development on `develop` and merge to `main` only after full validation and owner approval. Begin with skip/change/cancel/review behavior, then implement the sync worker against the existing outbox contract. Do not couple remote or AI failures to local scoring, and do not promote any generated pack beyond `draft` without human review.

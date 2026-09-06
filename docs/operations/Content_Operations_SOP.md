@@ -40,6 +40,9 @@ flowchart LR
 ## AI Content
 AI-generated questions remain Draft until validated for correctness, ambiguity, answer uniqueness, distractor quality, language, taxonomy, difficulty, and similarity risk.
 
+The implemented provider-neutral JSON generation, validation, asset import, and
+SQLite loading procedure is documented in `AI_Question_Bank_Workflow.md`.
+
 ## Quality Gate
 No question is published without verified answer/explanation, valid taxonomy, provenance, and reviewer approval.
 

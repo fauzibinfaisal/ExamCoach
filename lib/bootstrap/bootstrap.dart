@@ -1,5 +1,6 @@
 import 'package:exam_coach/app/app.dart';
 import 'package:exam_coach/analytics/local_analytics.dart';
+import 'package:exam_coach/features/exam/data/bundled_question_bank_loader.dart';
 import 'package:exam_coach/features/exam/data/local_question_repository.dart';
 import 'package:exam_coach/features/exam/data/mock_question_repository.dart';
 import 'package:exam_coach/features/exam/domain/repositories/question_repository.dart';
@@ -18,9 +19,14 @@ Future<void> bootstrap() async {
   final seedRepository = MockQuestionRepository();
   late final LearningFlowCubit learningFlowCubit;
   try {
+    final bundledBank = await BundledQuestionBankLoader().load();
     final database = await ExamCoachDatabase.openDefault();
     final questionRepository = LocalQuestionRepository(database);
-    await questionRepository.initializeWithSeed(seedRepository);
+    await questionRepository.initializeWithSeed(
+      seedRepository,
+      importedPacks: bundledBank.packs,
+      activePackId: bundledBank.activePackId,
+    );
     final persistenceRepository = LocalLearningPersistenceRepository(database);
     learningFlowCubit = _createCubit(
       questionRepository,

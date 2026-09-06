@@ -5,7 +5,7 @@ class ExamCoachDatabase {
   ExamCoachDatabase({required this.databasePath, DatabaseFactory? factory})
     : _factory = factory ?? databaseFactory;
 
-  static const schemaVersion = 2;
+  static const schemaVersion = 3;
   static const fileName = 'exam_coach.sqlite';
 
   final String databasePath;
@@ -55,10 +55,18 @@ class ExamCoachDatabase {
       await transaction.execute('''
         CREATE TABLE question_packs (
           id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
           exam_id TEXT NOT NULL,
           test_id TEXT NOT NULL,
           version INTEGER NOT NULL,
           validation_status TEXT NOT NULL,
+          author TEXT NOT NULL,
+          reviewer TEXT,
+          generator_provider TEXT,
+          generator_model TEXT,
+          prompt_version TEXT,
+          generated_at TEXT,
+          tryout_question_ids_json TEXT NOT NULL,
           downloaded_at TEXT NOT NULL
         )
       ''');
@@ -83,6 +91,8 @@ class ExamCoachDatabase {
           estimated_time_ms INTEGER NOT NULL,
           trap_type TEXT NOT NULL,
           provenance TEXT NOT NULL,
+          author TEXT NOT NULL,
+          reviewer TEXT,
           explanation TEXT NOT NULL,
           validation_status TEXT NOT NULL,
           content_version INTEGER NOT NULL,
@@ -190,11 +200,61 @@ class ExamCoachDatabase {
       await database.transaction(_createSyncSchema);
       migratedVersion = 2;
     }
+    if (migratedVersion < 3 && newVersion >= 3) {
+      await database.transaction(_migrateContentMetadataV3);
+      migratedVersion = 3;
+    }
     if (migratedVersion != newVersion) {
       throw StateError(
         'Missing migration from schema $migratedVersion to $newVersion',
       );
     }
+  }
+
+  static Future<void> _migrateContentMetadataV3(
+    DatabaseExecutor executor,
+  ) async {
+    await executor.execute(
+      "ALTER TABLE question_packs ADD COLUMN title TEXT NOT NULL DEFAULT ''",
+    );
+    await executor.execute(
+      "ALTER TABLE question_packs ADD COLUMN author TEXT NOT NULL DEFAULT 'legacy_import'",
+    );
+    await executor.execute(
+      'ALTER TABLE question_packs ADD COLUMN reviewer TEXT',
+    );
+    await executor.execute(
+      'ALTER TABLE question_packs ADD COLUMN generator_provider TEXT',
+    );
+    await executor.execute(
+      'ALTER TABLE question_packs ADD COLUMN generator_model TEXT',
+    );
+    await executor.execute(
+      'ALTER TABLE question_packs ADD COLUMN prompt_version TEXT',
+    );
+    await executor.execute(
+      'ALTER TABLE question_packs ADD COLUMN generated_at TEXT',
+    );
+    await executor.execute(
+      "ALTER TABLE question_packs ADD COLUMN tryout_question_ids_json TEXT NOT NULL DEFAULT '[]'",
+    );
+    await executor.execute(
+      "ALTER TABLE questions ADD COLUMN author TEXT NOT NULL DEFAULT 'legacy_import'",
+    );
+    await executor.execute('ALTER TABLE questions ADD COLUMN reviewer TEXT');
+    await executor.execute('''
+      UPDATE question_packs
+      SET title = 'Diagnostic TIU Prototype',
+          author = 'examcoach_development_team',
+          tryout_question_ids_json =
+            '["q_ratio_01","q_ratio_02","q_sequence_01","q_sequence_02","q_analogy_01","q_analogy_02"]'
+      WHERE id = 'pack_tiu_prototype_v1'
+    ''');
+    await executor.execute('''
+      UPDATE questions
+      SET author = 'examcoach_development_team'
+      WHERE pack_id = 'pack_tiu_prototype_v1'
+    ''');
   }
 
   static Future<void> _createSyncSchema(DatabaseExecutor executor) async {

@@ -201,6 +201,8 @@ class MockQuestionRepository implements QuestionRepository {
       estimatedTime: const Duration(seconds: 60),
       trapType: 'plausible_distractor',
       provenance: 'development_prototype_original',
+      author: 'examcoach_development_team',
+      reviewer: null,
       explanation: explanation,
       validationStatus: QuestionValidationStatus.draft,
       version: 1,

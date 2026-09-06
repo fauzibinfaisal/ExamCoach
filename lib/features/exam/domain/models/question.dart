@@ -23,6 +23,8 @@ class Question {
     required this.estimatedTime,
     required this.trapType,
     required this.provenance,
+    required this.author,
+    required this.reviewer,
     required this.explanation,
     required this.validationStatus,
     required this.version,
@@ -38,6 +40,8 @@ class Question {
   final Duration estimatedTime;
   final String trapType;
   final String provenance;
+  final String author;
+  final String? reviewer;
   final String explanation;
   final QuestionValidationStatus validationStatus;
   final int version;

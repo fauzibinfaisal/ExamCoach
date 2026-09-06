@@ -178,3 +178,63 @@ Related Documents:
 - `CONTRIBUTING.md`
 - `docs/engineering/Git_Workflow.md`
 - `docs/PROJECT_STATUS.md`
+
+## DEC-005 — Provider-Neutral AI Draft Ingestion
+
+Date: 2026-09-06
+
+Status:
+- Accepted
+
+Context:
+
+The owner needs to generate new question drafts with external AI tools and add
+them to the local ExamCoach question bank. The content SOP requires provenance,
+taxonomy, auditability, and human validation, while the architecture forbids AI
+from becoming the source of truth for scoring or learning decisions.
+
+Decision:
+
+Accept external AI output only through the versioned
+`ai_question_pack_v1` JSON contract. Validate it deterministically with a local
+CLI, store accepted files in a manifest-backed Flutter asset bank, and import
+unseen immutable packs transactionally into SQLite. All packs accepted by this
+pipeline must remain `draft` with no reviewer claim.
+
+Reason:
+
+- The workflow supports any AI provider or local model without runtime vendor
+  coupling, credentials, or network requirements.
+- Deterministic validation prevents malformed content from silently entering the
+  local database.
+- Immutable IDs and versions preserve completed-session answer history.
+- Explicit generator, author, provenance, and timestamp metadata support future
+  audits.
+- Enforced draft status preserves the human content quality gate.
+
+Alternatives Considered:
+
+- Call one AI provider directly from the mobile app: rejected because it adds
+  credential, availability, cost, safety, and vendor-lock-in risks.
+- Paste questions directly into Dart source: rejected because it is difficult to
+  validate, audit, version, and automate.
+- Let AI mark its own output validated: rejected because machine self-review
+  cannot satisfy the documented editorial gate.
+- Overwrite a pack in place: rejected because changed answers could corrupt the
+  meaning of historical attempts.
+
+Impact:
+
+- Owners can generate and test new draft packs through documented CLI commands.
+- SQLite schema v3 retains pack generator and question authorship metadata.
+- A new app build is required to distribute newly imported asset packs.
+- Semantic review, similarity detection, reviewer signoff, and production
+  promotion tooling remain future work.
+
+Related Documents:
+
+- `content/question_pack.schema.json`
+- `content/ai_question_prompt.md`
+- `docs/operations/Content_Operations_SOP.md`
+- `docs/operations/AI_Question_Bank_Workflow.md`
+- `docs/engineering/Local_Persistence_Design.md`
