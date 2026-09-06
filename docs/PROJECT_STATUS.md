@@ -37,6 +37,7 @@ Question packs, active sessions, answers, results, weakness profiles, recommenda
 - Preserved graceful startup: a database failure is reported and falls back to the transient learning repository.
 - Added integration coverage using real temporary SQLite files.
 - Produced Android and unsigned iOS debug builds with the native SQLite plugin.
+- Initialized Git on `main` and published the project to `https://github.com/fauzibinfaisal/ExamCoach.git`.
 
 ## Currently Working On
 
@@ -53,7 +54,7 @@ No implementation is in progress. The offline persistence milestone is closed an
 7. Add retention/pruning for completed sessions, synced analytics, and synced outbox records.
 8. Route the prototype content through human review and publish only a validated pack.
 9. Confirm final Android/iOS application identifiers before release configuration.
-10. Initialize version control when repository ownership and remote workflow are confirmed.
+10. Add CI for formatting, static analysis, tests, and mobile build smoke checks, then configure branch protection for `main`.
 
 ## Blockers
 
@@ -71,7 +72,6 @@ No implementation is in progress. The offline persistence milestone is closed an
 - Adaptive drill v1 does not yet implement spaced repetition, fatigue, or difficulty progression.
 - Prototype questions are `draft`, not published content.
 - Android uses `id.examcoach.exam_coach`; iOS uses generated identifier `id.examcoach.examCoach`. These are provisional.
-- The workspace is not a Git repository.
 
 ## Technical Decisions
 
@@ -83,6 +83,7 @@ No implementation is in progress. The offline persistence milestone is closed an
 - Learning mutations and their outbox entries share transaction boundaries.
 - Stable operation IDs make outbox retries idempotent.
 - Analytics failures never block scoring or progression; successful local analytics writes are durable and queued.
+- `main` is the primary branch and `origin` points to `https://github.com/fauzibinfaisal/ExamCoach.git`.
 - Weakness v1 uses configurable 65% accuracy, 20% speed, and 15% difficulty-handling weights, with two samples required for weak classification and five for full confidence.
 - Adaptive drill v1 uses largest-remainder allocation for the configurable 70/20/10 policy and prioritizes unseen questions within each tier.
 
@@ -125,11 +126,13 @@ No implementation is in progress. The offline persistence milestone is closed an
 - 2026-09-05: SQLite integration suite — PASS; schema, v1→v2 migration, restart recovery, history, analytics, and outbox verified.
 - 2026-09-05: `flutter build apk --debug` — PASS; `build/app/outputs/flutter-apk/app-debug.apk` created.
 - 2026-09-05: `flutter build ios --debug --no-codesign` — PASS; `build/ios/iphoneos/Runner.app` created.
+- 2026-09-06: GitHub publication — PASS; `main` created on `origin` and local tracking configured.
 
 ## Documentation Updated
 
 - 2026-09-05: Added `engineering/Local_Persistence_Design.md` with schema, transactions, recovery, outbox, migration, and deferred work.
 - 2026-09-05: Updated project status, implementation log, decision log, and documentation reading order.
+- 2026-09-06: Recorded repository initialization, GitHub publication, and the CI follow-up.
 
 ## Notes For Next AI Session
 

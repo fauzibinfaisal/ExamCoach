@@ -1,5 +1,45 @@
 # Implementation Log
 
+## 2026-09-06 — Initial GitHub Publication
+
+### Objective
+
+Place the validated ExamCoach baseline under version control and publish it to the owner-provided GitHub repository without including generated build artifacts.
+
+### Implemented
+
+- Initialized a Git repository with `main` as the primary branch.
+- Configured `origin` as `https://github.com/fauzibinfaisal/ExamCoach.git`.
+- Confirmed the remote repository had no existing refs before publishing.
+- Confirmed Flutter build output, `.dart_tool`, and CocoaPods output are ignored.
+- Published the complete Flutter source, tests, mobile platform projects, and documentation baseline.
+- Updated the project handoff status to replace repository initialization with CI as the next infrastructure step.
+
+### Files Changed
+
+- `docs/PROJECT_STATUS.md`
+- `docs/IMPLEMENTATION_LOG.md`
+
+### Technical Decisions
+
+- Use `main` as the canonical branch and track `origin/main`.
+- Keep generated build artifacts out of version control while retaining dependency lockfiles required for reproducible application builds.
+
+### Validation
+
+- Remote preflight with `git ls-remote` — PASS; no existing refs.
+- Staged diff whitespace check — PASS.
+- Ignore checks for APK/build, `.dart_tool`, and `ios/Pods` — PASS.
+- Initial push to `origin/main` — PASS.
+
+### Result
+
+PASS
+
+### Next Step
+
+- Add continuous integration for formatting, analysis, tests, and build smoke checks.
+
 ## 2026-09-05 — Repository Audit and Project Handoff Baseline
 
 ### Objective
