@@ -74,6 +74,14 @@ missing configuration to overwrite deterministic local learning evidence.
 - Do not deploy to a real Firebase project without owner project selection and
   credentials.
 
+### Git Integration
+
+- Feature branch `feature/firebase-cross-device-recovery` was reviewed and
+  squash-merged into `develop` through
+  [PR #10](https://github.com/fauzibinfaisal/ExamCoach/pull/10).
+- `main` was intentionally left unchanged pending owner acceptance and release
+  approval.
+
 ### Validation
 
 - `dart format lib test` — PASS.
