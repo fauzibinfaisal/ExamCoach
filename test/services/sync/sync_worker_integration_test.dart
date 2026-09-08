@@ -264,6 +264,32 @@ void main() {
   });
 
   test(
+    'leaves operations pending when Firebase authentication is absent',
+    () async {
+      final harness = await _openHarness(temporaryDirectory);
+      addTearDown(harness.database.close);
+      await _insertOperation(harness.database, 'requires_auth');
+      final worker = SyncWorker(
+        outboxRepository: harness.repository,
+        remoteGateway: _FakeRemoteGateway((operations, call) {
+          throw const SyncAuthenticationException('sign in required');
+        }),
+        connectivityMonitor: _FakeConnectivityMonitor(isOnline: true),
+        now: () => DateTime.utc(2026, 9, 7, 12),
+      );
+
+      final summary = await worker.runUntilIdle();
+      final operation = (await harness.repository.getPending()).single;
+
+      expect(summary.authenticationRequired, isTrue);
+      expect(summary.attempted, 1);
+      expect(operation.operationId, 'requires_auth');
+      expect(operation.attempts, 0);
+      expect(operation.lastError, isNull);
+    },
+  );
+
+  test(
     'dead-letters rejection and retries a missing acknowledgement',
     () async {
       final harness = await _openHarness(temporaryDirectory);

@@ -1,3 +1,5 @@
+import 'package:exam_coach/features/auth/application/auth_cubit.dart';
+import 'package:exam_coach/features/auth/application/auth_state.dart';
 import 'package:exam_coach/features/learning/application/learning_flow_cubit.dart';
 import 'package:exam_coach/features/learning/application/learning_flow_state.dart';
 import 'package:flutter/material.dart';
@@ -31,9 +33,17 @@ class HomePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      'ExamCoach',
-                      style: Theme.of(context).textTheme.titleLarge,
+                    Expanded(
+                      child: Text(
+                        'ExamCoach',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                    IconButton(
+                      key: const Key('account-button'),
+                      tooltip: 'Akun & sinkronisasi',
+                      onPressed: () => context.push('/account'),
+                      icon: const Icon(Icons.account_circle_outlined),
                     ),
                   ],
                 ),
@@ -49,6 +59,8 @@ class HomePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 28),
                 const _DemoNotice(),
+                const SizedBox(height: 18),
+                const _AccountSyncCard(),
                 const SizedBox(height: 18),
                 if (state.latestScore != null) ...[
                   _RecentResultCard(state: state),
@@ -87,6 +99,71 @@ class HomePage extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+class _AccountSyncCard extends StatelessWidget {
+  const _AccountSyncCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AuthCubit, AuthState>(
+      builder: (context, state) {
+        final (icon, title, detail) = switch (state.status) {
+          AuthStatus.unavailable => (
+            Icons.cloud_off_rounded,
+            'Mode lokal',
+            'Firebase belum dikonfigurasi; progres aman di perangkat.',
+          ),
+          AuthStatus.signedOut => (
+            Icons.cloud_outlined,
+            'Progres belum dicadangkan',
+            'Masuk untuk sinkronisasi dan recovery lintas perangkat.',
+          ),
+          AuthStatus.processing => (
+            Icons.sync_rounded,
+            'Menghubungkan akun…',
+            'Data lokal tetap tersedia selama proses berlangsung.',
+          ),
+          AuthStatus.signedIn => (
+            Icons.cloud_done_rounded,
+            'Akun terhubung',
+            state.user?.email ?? 'Sinkronisasi Firebase aktif.',
+          ),
+        };
+        return InkWell(
+          key: const Key('account-sync-card'),
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => context.push('/account'),
+          child: Ink(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      Text(detail),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

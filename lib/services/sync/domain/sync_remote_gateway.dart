@@ -50,3 +50,10 @@ class SyncTransportException implements Exception {
   @override
   String toString() => 'SyncTransportException: $message';
 }
+
+class SyncAuthenticationException extends SyncTransportException {
+  const SyncAuthenticationException(super.message);
+
+  @override
+  String toString() => 'SyncAuthenticationException: $message';
+}

@@ -62,6 +62,7 @@ void main() {
         'recommendations',
         'analytics_events',
         'sync_outbox',
+        'account_binding',
       }),
     );
     expect(harness.questions.allQuestions, hasLength(12));
@@ -75,7 +76,7 @@ void main() {
   });
 
   test(
-    'migrates content, skipped answers, sync, and review data from v1 to v6',
+    'migrates content, skipped answers, sync, review, and account data from v1 to v7',
     () async {
       final databasePath = _databasePath(temporaryDirectory);
       final legacyDatabase = await databaseFactoryFfi.openDatabase(
@@ -136,6 +137,7 @@ void main() {
       expect(tableNames, contains('legacy_marker'));
       expect(tableNames, contains('analytics_events'));
       expect(tableNames, contains('sync_outbox'));
+      expect(tableNames, contains('account_binding'));
       final packColumns = await opened.rawQuery(
         'PRAGMA table_info(question_packs)',
       );

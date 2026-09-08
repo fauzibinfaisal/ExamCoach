@@ -33,6 +33,17 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Firebase Functions and local emulators
+**/node_modules/
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+functions/.env
+functions/.env.local
+config/firebase.*.json
+!config/firebase.dart-defines.example.json
+
 # Symbolication related
 app.*.symbols
 

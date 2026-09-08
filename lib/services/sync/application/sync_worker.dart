@@ -129,6 +129,9 @@ class SyncWorker implements SyncRunner {
             accumulator: accumulator,
           );
         }
+      } on SyncAuthenticationException {
+        accumulator.authenticationRequired = true;
+        break;
       } on SyncTransportException catch (error) {
         for (final operation in operations) {
           await _recordFailure(
@@ -247,6 +250,7 @@ class SyncWorker implements SyncRunner {
 }
 
 class _SyncAccumulator {
+  bool authenticationRequired = false;
   int batches = 0;
   int attempted = 0;
   int acknowledged = 0;
@@ -257,6 +261,7 @@ class _SyncAccumulator {
   int pruned = 0;
 
   SyncRunSummary toSummary() => SyncRunSummary(
+    authenticationRequired: authenticationRequired,
     batches: batches,
     attempted: attempted,
     acknowledged: acknowledged,

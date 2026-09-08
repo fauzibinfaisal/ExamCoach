@@ -1,6 +1,7 @@
 class SyncRunSummary {
   const SyncRunSummary({
     this.skippedOffline = false,
+    this.authenticationRequired = false,
     this.batches = 0,
     this.attempted = 0,
     this.acknowledged = 0,
@@ -12,6 +13,7 @@ class SyncRunSummary {
   });
 
   final bool skippedOffline;
+  final bool authenticationRequired;
   final int batches;
   final int attempted;
   final int acknowledged;
