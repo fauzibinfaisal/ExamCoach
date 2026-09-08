@@ -14,7 +14,7 @@ The database is opened through `ExamCoachDatabase`, which accepts a `DatabaseFac
 
 ## Schema Version
 
-Current schema: `6`.
+Current schema: `7`.
 
 - Version 1: question packs, questions, exam sessions, user answers, weakness profiles, and recommendations.
 - Version 2: durable analytics events and the idempotent sync outbox.
@@ -24,6 +24,8 @@ Current schema: `6`.
   and retention metadata.
 - Version 6: immutable content digest, human review evidence, provenance
   decision, and publication audit metadata.
+- Version 7: single-owner Firebase account binding, last-recovery time, and
+  observed remote revision.
 
 Unknown migrations and database downgrades fail explicitly instead of silently rebuilding or deleting user data.
 
@@ -86,6 +88,18 @@ remote revision. Ready operations are ordered by `created_at` and
 seconds up to fifteen minutes, batches of 25, and at most ten batches per run.
 See `Sync_Architecture.md` for the full state machine and conflict contract.
 
+### Account Binding
+
+- `account_binding`
+
+The table has exactly zero or one row (`singleton = 1`) containing the bound
+Firebase UID, binding time, last successful empty-device recovery time, and
+observed remote revision. First sign-in atomically claims every `local_user`
+session and analytics row and rewrites matching queued payload ownership. A
+conflicting existing owner aborts the transaction. Sign-out does not delete the
+binding or local data, and a different account is refused until a future
+explicit destructive reset workflow exists.
+
 ## Recovery Flow
 
 ```text
@@ -102,6 +116,11 @@ Application bootstrap
       → Otherwise restore the exact saved question
       → If inactive for more than 24 hours, persist expiry and return Home
       → Show “Lanjutkan sesi” on Home for a recoverable active session
+  → Initialize optional Firebase runtime
+      → Disabled/invalid: remain fully local
+      → Authenticated first sign-in: atomically bind local owner
+      → No local sessions: validate and import owned remote snapshot
+      → Existing local sessions: skip inbound import and upload outbox
 ```
 
 If an active session references unavailable questions, the application does not guess or remap content. It returns to Home with a recovery error.
@@ -116,6 +135,8 @@ If database bootstrap itself fails, the application reports a Flutter error and 
 - Cancellation or expiry + terminal-status outbox operation.
 - Session completion + profile upserts + recommendation insert + completion outbox operation.
 - Analytics event + analytics outbox operation.
+- First account claim + session/analytics/outbox owner rewrite + binding insert.
+- Empty-device remote session/answer import + recovery metadata update.
 - Mark analytics synced + update source event status.
 - Prune an old synced analytics outbox operation + its synced source event.
 
@@ -124,7 +145,7 @@ If database bootstrap itself fails, the application reports a Flutter error and 
 The integration suite uses temporary SQLite files and verifies:
 
 - schema creation and question-pack persistence;
-- migration from schema v1 through v2, v3, v4, v5, and v6;
+- migration from schema v1 through v2, v3, v4, v5, v6, and v7;
 - direct v4→v5 migration with acknowledgement backfill;
 - generated-pack metadata import, activation, and idempotent reload;
 - immutable draft→validated→published lifecycle persistence and tamper refusal;
@@ -140,11 +161,13 @@ The integration suite uses temporary SQLite files and verifies:
 - durable analytics queue behavior;
 - offline→reconnect delivery, batched outcomes, retry limits, uncertain
   delivery, and synced-retention cleanup.
+- atomic local account claim, conflicting-account refusal, empty-device remote
+  import, local score recomputation, and local-data preservation.
 
 ## Deferred
 
-- Authenticated Firebase gateway and runtime bootstrap wiring.
-- Cross-device download/reconciliation and server revision enforcement.
+- General multi-writer reconciliation beyond empty-device recovery.
+- Explicit local-data export/reset and safe account switching.
 - Operator inspection and controlled re-drive for dead-letter operations.
 - OS-scheduled background execution beyond startup/reconnect triggers.
 - Encryption policy for future account or sensitive data.

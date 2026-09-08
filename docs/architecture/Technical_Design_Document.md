@@ -23,9 +23,9 @@ flowchart TD
     A[Flutter App] --> B[Local Data]
     A --> C[Learning Engine]
     A --> D[Analytics Queue]
-    A --> E[Backend]
-    E --> F[Firestore]
-    E --> G[Cloud Functions]
+    A --> E[Firebase Auth]
+    A --> G[Authenticated Callable Functions]
+    G --> F[Firestore]
     G --> H[AI Provider]
     G --> I[Analytics]
     G --> J[Subscription]
@@ -41,11 +41,23 @@ Users should be able to download content, take tests, answer questions, finish t
 ## Sync
 Local Write → Outbox/Queue → Retry → Server → Acknowledgement. Operations should be idempotent.
 
+The implemented server boundary uses the authenticated UID, deterministic
+operation IDs, a canonical-payload ledger, and per-user revisions. Inbound
+recovery is allowed only into a matching account-bound database with no local
+sessions; correctness and scores are recomputed by the local deterministic core.
+See `../engineering/Firebase_Integration.md` and
+`../engineering/Sync_Architecture.md`.
+
 ## Versioning
 Version taxonomy, question content, scoring configuration, learning algorithms, analytics schemas, and AI prompts.
 
 ## Security
 Use least privilege, secure rules, server-side authorization, and protected AI credentials.
+
+Implemented user-learning writes go only through callable Functions. Firestore
+clients may read their own tree but cannot write it directly. Firebase is
+disabled when runtime configuration is absent or incomplete; no project or
+server credential is embedded in the repository.
 
 ## Testing
 Unit: learning engine.

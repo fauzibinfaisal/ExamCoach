@@ -1,4 +1,5 @@
 import 'package:exam_coach/analytics/analytics_events.dart';
+import 'package:exam_coach/features/auth/domain/user_identity.dart';
 import 'package:exam_coach/features/exam/data/mock_question_repository.dart';
 import 'package:exam_coach/features/exam/domain/models/exam_session.dart';
 import 'package:exam_coach/features/learning/application/learning_flow_cubit.dart';
@@ -11,6 +12,23 @@ import 'package:exam_coach/learning_engine/weakness_analyzer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('owns newly created sessions with the bound account identity', () async {
+    final identity = UserIdentity(boundUserId: 'firebase_user_123');
+    identity.bindAuthenticatedUser('firebase_user_123');
+    final cubit = LearningFlowCubit(
+      questionRepository: MockQuestionRepository(),
+      scoringEngine: const ScoringEngine(),
+      weaknessAnalyzer: const WeaknessAnalyzer(),
+      recommendationEngine: const RecommendationEngine(),
+      adaptiveDrillEngine: const AdaptiveDrillEngine(),
+      userIdentity: identity,
+    );
+    addTearDown(cubit.close);
+
+    expect(await cubit.startTryout(), isTrue);
+    expect(cubit.state.session?.userId, 'firebase_user_123');
+  });
+
   test('orchestrates tryout result and recommended drill locally', () async {
     final cubit = LearningFlowCubit(
       questionRepository: MockQuestionRepository(),

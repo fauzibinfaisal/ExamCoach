@@ -1,14 +1,17 @@
 import 'dart:convert';
 
 import 'package:exam_coach/analytics/analytics_events.dart';
+import 'package:exam_coach/features/auth/domain/user_identity.dart';
 import 'package:exam_coach/services/database/exam_coach_database.dart';
 import 'package:exam_coach/services/sync/domain/sync_outbox_item.dart';
 import 'package:sqflite/sqflite.dart';
 
 class LocalAnalytics implements AnalyticsTracker {
-  LocalAnalytics(this._database);
+  LocalAnalytics(this._database, {UserIdentity? userIdentity})
+    : _userIdentity = userIdentity ?? UserIdentity();
 
   final ExamCoachDatabase _database;
+  final UserIdentity _userIdentity;
   int _sequence = 0;
 
   @override
@@ -25,7 +28,7 @@ class LocalAnalytics implements AnalyticsTracker {
       'event_name': name,
       'event_version': 1,
       'occurred_at': occurredAt.toIso8601String(),
-      'user_id': 'local_user',
+      'user_id': _userIdentity.dataOwnerId,
       'session_id': sessionId,
       'properties_json': jsonEncode(properties),
       'upload_status': SyncOutboxStatus.pending.name,

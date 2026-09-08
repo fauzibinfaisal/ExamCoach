@@ -1,3 +1,4 @@
+import 'package:exam_coach/features/auth/presentation/account_page.dart';
 import 'package:exam_coach/features/home/presentation/home_page.dart';
 import 'package:exam_coach/features/practice/presentation/question_page.dart';
 import 'package:exam_coach/features/practice/presentation/session_review_page.dart';
@@ -10,6 +11,10 @@ GoRouter createAppRouter() {
   return GoRouter(
     routes: [
       GoRoute(path: '/', builder: (context, state) => const HomePage()),
+      GoRoute(
+        path: '/account',
+        builder: (context, state) => const AccountPage(),
+      ),
       GoRoute(
         path: '/overview',
         builder: (context, state) => const TryoutOverviewPage(),

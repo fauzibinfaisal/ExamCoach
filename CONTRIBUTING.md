@@ -21,6 +21,7 @@ Before opening a pull request into `develop`, run:
 dart format --output=none --set-exit-if-changed lib test
 flutter analyze
 flutter test
+npm --prefix functions test
 ```
 
 Use Conventional Commit subjects such as `feat:`, `fix:`, `test:`, `docs:`,
@@ -36,3 +37,9 @@ Question-pack promotion must follow
 [`docs/operations/Human_Question_Review_Workflow.md`](docs/operations/Human_Question_Review_Workflow.md).
 Never fill a human review record with AI, overwrite a lifecycle artifact, or
 change accepted content under an existing ID.
+
+Firebase work must follow
+[`docs/engineering/Firebase_Integration.md`](docs/engineering/Firebase_Integration.md).
+Never commit service-account credentials or silently point development commands
+at production. User-learning writes must remain behind authenticated callable
+Functions rather than direct Firestore client writes.

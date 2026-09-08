@@ -1,4 +1,5 @@
 import 'package:exam_coach/app/app.dart';
+import 'package:exam_coach/features/auth/application/auth_cubit.dart';
 import 'package:exam_coach/features/exam/data/mock_question_repository.dart';
 import 'package:exam_coach/features/learning/application/learning_flow_cubit.dart';
 import 'package:exam_coach/learning_engine/adaptive_drill_engine.dart';
@@ -9,6 +10,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('opens account recovery while Firebase is safely disabled', (
+    tester,
+  ) async {
+    final cubit = LearningFlowCubit(
+      questionRepository: MockQuestionRepository(),
+      scoringEngine: const ScoringEngine(),
+      weaknessAnalyzer: const WeaknessAnalyzer(),
+      recommendationEngine: const RecommendationEngine(),
+      adaptiveDrillEngine: const AdaptiveDrillEngine(),
+    );
+    await tester.pumpWidget(
+      ExamCoachApp(
+        learningFlowCubit: cubit,
+        authCubit: AuthCubit.unavailable('Test mode'),
+      ),
+    );
+
+    expect(find.text('Mode lokal'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('account-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Akun & sinkronisasi'), findsOneWidget);
+    expect(find.text('Firebase belum aktif'), findsOneWidget);
+    expect(find.text('Test mode'), findsOneWidget);
+  });
+
   testWidgets('requires confirmation before cancelling a new tryout', (
     tester,
   ) async {
@@ -19,9 +46,14 @@ void main() {
       recommendationEngine: const RecommendationEngine(),
       adaptiveDrillEngine: const AdaptiveDrillEngine(),
     );
-    await tester.pumpWidget(ExamCoachApp(learningFlowCubit: cubit));
+    await tester.pumpWidget(
+      ExamCoachApp(
+        learningFlowCubit: cubit,
+        authCubit: AuthCubit.unavailable('Test mode'),
+      ),
+    );
 
-    await tester.tap(find.byKey(const Key('start-tryout-button')));
+    await _tapStartTryout(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Batalkan tryout'));
     await tester.pumpAndSettle();
@@ -42,13 +74,18 @@ void main() {
       recommendationEngine: const RecommendationEngine(),
       adaptiveDrillEngine: const AdaptiveDrillEngine(),
     );
-    await tester.pumpWidget(ExamCoachApp(learningFlowCubit: cubit));
+    await tester.pumpWidget(
+      ExamCoachApp(
+        learningFlowCubit: cubit,
+        authCubit: AuthCubit.unavailable('Test mode'),
+      ),
+    );
 
     expect(
       find.text('Belajar dengan arah,\nbukan sekadar banyak soal.'),
       findsOneWidget,
     );
-    await tester.tap(find.byKey(const Key('start-tryout-button')));
+    await _tapStartTryout(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('Ringkasan tryout'), findsOneWidget);
@@ -119,4 +156,12 @@ void main() {
       findsOneWidget,
     );
   });
+}
+
+Future<void> _tapStartTryout(WidgetTester tester) async {
+  final button = find.byKey(const Key('start-tryout-button'));
+  await tester.ensureVisible(button);
+  await tester.pumpAndSettle();
+  await tester.tap(button);
+  await tester.pumpAndSettle();
 }

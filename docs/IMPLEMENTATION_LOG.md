@@ -1,5 +1,116 @@
 # Implementation Log
 
+## 2026-09-08 — Firebase Authentication and Safe Cross-Device Recovery
+
+### Objective
+
+Connect the Step 8 outbox to an authenticated Firebase boundary and add
+cross-device recovery without allowing remote state, account switching, or
+missing configuration to overwrite deterministic local learning evidence.
+
+### Implemented
+
+- Added optional Firebase runtime initialization from explicit Dart defines.
+  Missing/invalid configuration fails closed to fully functional local mode.
+- Added email/password registration, sign-in, password reset, sign-out, Account
+  UI, and Home sync status.
+- Added SQLite schema v7 `account_binding`; first sign-in atomically claims
+  `local_user` sessions, analytics, and matching outbox payloads. Sign-out keeps
+  data/binding and another UID is refused.
+- Added authenticated callable upload/recovery gateways with 30-second timeouts
+  and distinct authentication/transport failures.
+- Preserved pending operations without attempt increments when authentication
+  is unavailable.
+- Added Node 22 `pushSyncBatch` and `pullRecoverySnapshot` Functions with strict
+  protocol limits, authenticated UID ownership, stable idempotency IDs,
+  canonical payload hashes, per-user revisions, immutable session fields,
+  complete-answer enforcement, and forward lifecycle validation.
+- Added Firestore owner-read/direct-write-denied Rules and public read access
+  only for artifacts whose stored lifecycle is `published`.
+- Added empty-device-only recovery for at most 200 sessions/5,000 answers with
+  UID, lifecycle, timestamp, ID, installed-question, option, and completeness
+  checks. Correctness and score are recomputed from local content.
+- Kept non-empty local databases authoritative; inbound state is skipped and
+  local outbox upload proceeds instead of an unsafe live merge.
+- Added Firebase/Auth/Functions/Firestore emulator configuration, a runtime
+  template, owner setup guide, and manual acceptance plan.
+- Pinned Functions deployment to Node 22 and overrode transitive `uuid` to
+  patched `11.1.1`; production dependency audit reports zero vulnerabilities.
+- Advanced the unreleased app from `0.9.0+9` to `0.10.0+10` and SQLite schema
+  from v6 to v7.
+- Raised the iOS development target from 13 to 15 for the installed Firebase
+  Flutter SDK requirements.
+
+### Key Files
+
+- `lib/features/auth/`
+- `lib/services/firebase/firebase_runtime.dart`
+- `lib/services/sync/data/firebase_sync_gateway.dart`
+- `lib/services/sync/domain/remote_learning_snapshot.dart`
+- `lib/services/sync/application/sync_worker.dart`
+- `lib/features/learning/data/local_learning_persistence_repository.dart`
+- `lib/services/database/exam_coach_database.dart`
+- `functions/index.js`
+- `functions/sync_core.js`
+- `functions/test/`
+- `firestore.rules`
+- `firebase.json`
+- `config/firebase.dart-defines.example.json`
+- `docs/engineering/Firebase_Integration.md`
+- `docs/engineering/Sync_Architecture.md`
+
+### Technical Decisions
+
+- Keep Firebase optional until the owner provides an explicit environment; do
+  not invent or commit a project or privileged credential.
+- Bind one local database to one Firebase UID permanently until a reviewed,
+  explicit export/reset workflow exists.
+- Route remote mutation through callable Functions; mobile Firestore clients
+  receive no direct write permission.
+- Separate upload acknowledgement from inbound recovery and limit Step 10
+  recovery to an empty local session store.
+- Treat remote score/correctness as untrusted and recompute from installed local
+  content before restoring learning state.
+- Do not deploy to a real Firebase project without owner project selection and
+  credentials.
+
+### Validation
+
+- `dart format lib test` — PASS.
+- `flutter analyze` — PASS; no issues found.
+- `flutter test` — PASS; 53 tests passed.
+- `npm --prefix functions test` — PASS; 10 server-core tests passed.
+- Auth + Firestore + Functions emulator callable flow — PASS: unauthenticated
+  refusal, authenticated start/answer/complete, duplicate replay, per-user
+  revision, recovery snapshot, untrusted-score removal, and incomplete-session
+  rejection.
+- Firestore Rules emulator — PASS: owner isolation, guest denial, direct-write
+  denial, published read, draft denial, and content-write denial.
+- `npm audit --omit=dev` — PASS; zero production vulnerabilities after the
+  `uuid@11.1.1` override.
+- `flutter build apk --debug` — PASS; `0.10.0` build `10`, minSdk 24,
+  165,695,444 bytes.
+- Android APK SHA-256 —
+  `1ddea444d0a9cba16d7e79eec7dbf3a67b0d5e2a673334ed97f84dbd33d6d291`.
+- `flutter build ios --debug --no-codesign` — PASS; `0.10.0` build `10`,
+  minimum iOS 15. Device/signing testing skipped per owner direction.
+- No real Firebase project was created, mutated, or deployed.
+- `main` remained unchanged.
+
+### Result
+
+PASS for repository implementation and local/emulator validation. Real
+development-project activation and two-device acceptance testing require the
+owner's Firebase project configuration.
+
+### Next Step
+
+- Owner: create/configure the Firebase development project and execute the
+  manual acceptance plan in `docs/engineering/Firebase_Integration.md`.
+- Product Step 11: implement the structured AI Coach with server quota,
+  entitlement, and subscription boundaries without moving deterministic
+  scoring/recommendation into AI.
+
 ## 2026-09-06 — Human-Gated Question Review and Immutable Publication
 
 ### Objective

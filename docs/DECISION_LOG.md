@@ -1,5 +1,77 @@
 # Decision Log
 
+## DEC-010 — Single-Owner Local Binding and Empty-Device Firebase Recovery
+
+Date: 2026-09-08
+
+Status:
+- Accepted
+
+Context:
+
+The Step 8 outbox can safely upload retries, but authenticated remote ownership
+and inbound recovery introduce a different risk: a sign-in or remote snapshot
+could relabel, merge, or overwrite deterministic local learning evidence. The
+repository also has no owner-supplied Firebase project, so remote initialization
+must not make local development unusable.
+
+Decision:
+
+Make Firebase an explicit runtime capability that fails closed to local-only
+mode. At first successful sign-in, transactionally bind the SQLite database to
+one Firebase UID and claim all `local_user` session, analytics, and matching
+outbox ownership. Retain that binding after sign-out and refuse another UID.
+Route all remote mutations through authenticated callable Functions; deny direct
+Firestore learning writes. Store stable operation IDs, canonical payload hashes,
+and per-user revisions remotely. Import an owned remote snapshot only when the
+local database has no sessions, validate it against installed content, and
+recompute correctness/score locally.
+
+Reason:
+
+- Local offline learning remains available without a Firebase project or
+  network.
+- Permanent single-owner binding prevents one account from inheriting another
+  user's local evidence.
+- Transactional owner claim avoids partially relabeled sessions/outbox data.
+- Callable authorization and deny-by-default writes centralize trust and state
+  transition checks.
+- Empty-device-only import avoids inventing an unsafe two-way merge policy.
+- Local recomputation preserves the deterministic engine as source of truth and
+  does not trust uploaded correctness or score.
+
+Alternatives Considered:
+
+- Require Firebase at app startup: rejected because it breaks offline-first
+  learning and local development.
+- Direct client writes guarded only by Rules: rejected because lifecycle,
+  idempotency, and revision invariants need server transactions.
+- Replace local state with remote state after every login: rejected because it
+  can destroy newer or unsynced evidence.
+- Merge two non-empty devices by timestamp: rejected because session lifecycle,
+  edited answers, content versions, and insight recomputation need a reviewed
+  domain policy rather than generic last-write-wins.
+- Allow immediate account switching on one database: rejected because safe
+  export/reset consent and deletion behavior are not implemented.
+
+Impact:
+
+- SQLite schema v7 adds singleton `account_binding` metadata.
+- The Firebase gateway is registered only with complete Dart-define
+  configuration; otherwise Account UI reports local mode.
+- Sign-out preserves local data and binding.
+- A clean second device with matching content can recover up to 200 sessions and
+  5,000 answers; a non-empty device keeps its local state and uploads it.
+- General reconciliation, explicit reset/account switch, App Check,
+  observability, and real-project deployment remain future/owner work.
+
+Related Documents:
+
+- `docs/engineering/Firebase_Integration.md`
+- `docs/engineering/Sync_Architecture.md`
+- `docs/engineering/Local_Persistence_Design.md`
+- `docs/architecture/Backend_Service_Architecture.md`
+
 ## DEC-009 — Digest-Bound Human Review and Immutable Content Promotion
 
 Date: 2026-09-06

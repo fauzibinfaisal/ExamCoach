@@ -170,7 +170,12 @@ class LocalLearningPersistenceRepository
         entityType: 'user_answer',
         entityId: '${session.id}:${answer.questionId}',
         operation: 'upsert',
-        payload: answerRow,
+        payload: {
+          ...answerRow,
+          'session_sync_version': session.syncVersion,
+          'session_current_index': session.currentIndex,
+          'session_updated_at': session.updatedAt.toIso8601String(),
+        },
         createdAt: answer.answeredAt,
         replaceExisting: true,
       );

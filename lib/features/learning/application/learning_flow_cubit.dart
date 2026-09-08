@@ -1,4 +1,5 @@
 import 'package:exam_coach/analytics/analytics_events.dart';
+import 'package:exam_coach/features/auth/domain/user_identity.dart';
 import 'package:exam_coach/features/exam/domain/models/answer_record.dart';
 import 'package:exam_coach/features/exam/domain/models/exam_session.dart';
 import 'package:exam_coach/features/exam/domain/models/question.dart';
@@ -25,6 +26,7 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
     LearningPersistenceRepository? persistenceRepository,
     AnalyticsTracker? analytics,
     QuestionReviewAccessPolicy? reviewAccessPolicy,
+    UserIdentity? userIdentity,
     Duration sessionExpiry = const Duration(hours: 24),
     UtcNow? now,
   }) {
@@ -37,6 +39,7 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
       persistenceRepository ?? TransientLearningPersistenceRepository(),
       analytics ?? InMemoryAnalytics(),
       reviewAccessPolicy ?? const DevelopmentQuestionReviewAccessPolicy(),
+      userIdentity ?? UserIdentity(),
       sessionExpiry,
       now ?? () => DateTime.now().toUtc(),
     );
@@ -51,6 +54,7 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
     this._persistenceRepository,
     this.analytics,
     this._reviewAccessPolicy,
+    this._userIdentity,
     this._sessionExpiry,
     this._now,
   ) : _questionStartedAt = _ensureUtc(_now()),
@@ -63,6 +67,7 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
   final AdaptiveDrillEngine _adaptiveDrillEngine;
   final LearningPersistenceRepository _persistenceRepository;
   final QuestionReviewAccessPolicy _reviewAccessPolicy;
+  final UserIdentity _userIdentity;
   final Duration _sessionExpiry;
   final UtcNow _now;
   final AnalyticsTracker analytics;
@@ -71,14 +76,25 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
 
   Future<void> restore() async {
     final snapshot = await _persistenceRepository.loadSnapshot();
+    final restoredProfiles =
+        snapshot.profiles.isEmpty && snapshot.answerHistory.isNotEmpty
+        ? _weaknessAnalyzer.analyze(
+            questions: _questionRepository.allQuestions,
+            answers: snapshot.answerHistory,
+            previousProfiles: const [],
+          )
+        : snapshot.profiles;
+    final restoredRecommendation =
+        snapshot.recommendation ??
+        _recommendationEngine.generate(restoredProfiles);
     final activeSession = snapshot.activeSession;
     if (activeSession == null) {
       emit(
         LearningFlowState(
           answerHistory: snapshot.answerHistory,
           latestScore: snapshot.latestScore,
-          profiles: snapshot.profiles,
-          recommendation: snapshot.recommendation,
+          profiles: restoredProfiles,
+          recommendation: restoredRecommendation,
         ),
       );
       return;
@@ -107,8 +123,8 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
         LearningFlowState(
           answerHistory: snapshot.answerHistory,
           latestScore: snapshot.latestScore,
-          profiles: snapshot.profiles,
-          recommendation: snapshot.recommendation,
+          profiles: restoredProfiles,
+          recommendation: restoredRecommendation,
           errorMessage:
               'Sesi sebelumnya kedaluwarsa setelah 24 jam tidak aktif.',
         ),
@@ -129,8 +145,8 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
         LearningFlowState(
           answerHistory: snapshot.answerHistory,
           latestScore: snapshot.latestScore,
-          profiles: snapshot.profiles,
-          recommendation: snapshot.recommendation,
+          profiles: restoredProfiles,
+          recommendation: restoredRecommendation,
           errorMessage:
               'Sesi tersimpan tidak dapat dipulihkan karena paket soal berubah.',
         ),
@@ -165,8 +181,8 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
         currentAnswers: snapshot.activeAnswers,
         answerHistory: snapshot.answerHistory,
         latestScore: snapshot.latestScore,
-        profiles: snapshot.profiles,
-        recommendation: snapshot.recommendation,
+        profiles: restoredProfiles,
+        recommendation: restoredRecommendation,
       ),
     );
   }
@@ -221,7 +237,7 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
     final now = _utcNow();
     final session = ExamSession(
       id: 'session_${now.microsecondsSinceEpoch}',
-      userId: 'local_user',
+      userId: _userIdentity.dataOwnerId,
       testId: questions.first.taxonomy.testId,
       mode: mode,
       status: ExamSessionStatus.active,

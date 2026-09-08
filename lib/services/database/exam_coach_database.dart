@@ -5,7 +5,7 @@ class ExamCoachDatabase {
   ExamCoachDatabase({required this.databasePath, DatabaseFactory? factory})
     : _factory = factory ?? databaseFactory;
 
-  static const schemaVersion = 6;
+  static const schemaVersion = 7;
   static const fileName = 'exam_coach.sqlite';
 
   final String databasePath;
@@ -189,6 +189,7 @@ class ExamCoachDatabase {
         CREATE INDEX recommendations_generated_idx
         ON recommendations(generated_at DESC)
       ''');
+      await _createAccountBindingSchema(transaction);
       await _createSyncSchema(transaction);
     });
   }
@@ -224,6 +225,10 @@ class ExamCoachDatabase {
     if (migratedVersion < 6 && newVersion >= 6) {
       await database.transaction(_migrateContentReviewV6);
       migratedVersion = 6;
+    }
+    if (migratedVersion < 7 && newVersion >= 7) {
+      await database.transaction(_createAccountBindingSchema);
+      migratedVersion = 7;
     }
     if (migratedVersion != newVersion) {
       throw StateError(
@@ -383,6 +388,20 @@ class ExamCoachDatabase {
     await executor.execute('''
       CREATE INDEX IF NOT EXISTS sync_outbox_ready_idx
       ON sync_outbox(status, next_attempt_at, created_at)
+    ''');
+  }
+
+  static Future<void> _createAccountBindingSchema(
+    DatabaseExecutor executor,
+  ) async {
+    await executor.execute('''
+      CREATE TABLE IF NOT EXISTS account_binding (
+        singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+        firebase_uid TEXT NOT NULL UNIQUE,
+        bound_at TEXT NOT NULL,
+        last_recovered_at TEXT,
+        remote_revision INTEGER NOT NULL DEFAULT 0
+      )
     ''');
   }
 }

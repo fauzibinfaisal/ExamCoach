@@ -10,10 +10,11 @@ Tryout overview → Answer or skip → Pre-submit review → Score
 
 SQLite stores downloaded prototype content, active sessions, answers/skips, learning history, recommendations, analytics, and an idempotent sync outbox. Interrupted question and pre-submit review states can be resumed after relaunch; cancelled or expired partial sessions do not affect learning insight.
 
-Current development version: `0.9.0+9`. Major version zero is intentional while
-the product is unreleased. The connectivity-aware sync engine is implemented and
-tested against fake remotes, but its authenticated production gateway remains
-deferred to the Firebase milestone; local learning never waits for sync.
+Current development version: `0.10.0+10`. Major version zero is intentional
+while the product is unreleased. The connectivity-aware engine now has an
+optional authenticated Firebase gateway, server validation, and empty-device
+cross-device recovery. With no Firebase runtime configuration, the app remains
+fully local and learning never waits for sync.
 
 The deterministic learning engine is the source of truth. AI integration is intentionally not part of scoring, correctness, weakness analysis, or question selection.
 
@@ -32,7 +33,25 @@ flutter analyze
 flutter test
 flutter build apk --debug
 flutter build ios --debug --no-codesign
+npm --prefix functions test
 ```
+
+## Optional Firebase accounts and recovery
+
+Step 10 adds email/password accounts, authenticated outbox upload, and safe
+empty-device recovery. No real Firebase project or credential is committed or
+deployed from this repository. Copy the placeholder runtime template only after
+creating a development Firebase project:
+
+```bash
+cp config/firebase.dart-defines.example.json config/firebase.dev.json
+flutter run --dart-define-from-file=config/firebase.dev.json
+```
+
+Read `docs/engineering/Firebase_Integration.md` before configuring, deploying,
+or testing Firebase. Existing local sessions are never overwritten by inbound
+recovery, and a local database remains permanently bound to its first account
+until an explicit reset workflow is implemented.
 
 ## AI-assisted question drafts
 
@@ -75,6 +94,7 @@ Read these documents before changing implementation:
 - `docs/engineering/Git_Workflow.md`
 - `docs/engineering/Session_Controls_and_Review.md`
 - `docs/engineering/Sync_Architecture.md`
+- `docs/engineering/Firebase_Integration.md`
 - `docs/engineering/Release_Versioning.md`
 - `docs/operations/AI_Question_Bank_Workflow.md`
 - `docs/operations/Human_Question_Review_Workflow.md`

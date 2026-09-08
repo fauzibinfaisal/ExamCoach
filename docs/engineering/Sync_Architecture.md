@@ -2,25 +2,33 @@
 
 ## Objective
 
-Deliver locally committed learning and analytics operations to a remote service
-without making scoring, progression, or session recovery depend on a network
-connection.
+Deliver locally committed learning and analytics operations to an authenticated
+remote service without making scoring, progression, or local recovery depend on
+a network connection.
 
-## Current Scope
+## Implemented Scope
 
-Step 8 implements the provider-neutral mobile sync engine:
+Step 8 established the provider-neutral mobile engine:
 
-- a real device connectivity adapter;
+- real device-connectivity adapter;
 - deterministic ready-queue ordering and bounded batching;
-- remote acknowledgement and idempotency outcomes;
-- exponential retry and dead-letter handling;
-- synced-record retention; and
-- an initial/reconnect coordinator with single-flight worker execution.
+- explicit acknowledgement and idempotency outcomes;
+- exponential retry, dead-letter handling, and synced retention; and
+- startup/reconnect coordination with single-flight worker execution.
 
-The production `SyncRemoteGateway` and runtime bootstrap wiring are deliberately
-deferred to Step 10, when authenticated Firebase data ownership and security
-rules are available. Until then, the outbox remains authoritative and no local
-operation is falsely marked as remotely synced.
+Step 10 supplies the optional Firebase boundary:
+
+- Firebase email/password authentication and retained device/account binding;
+- authenticated callable `FirebaseSyncGateway` with 30-second timeouts;
+- `pushSyncBatch` and `pullRecoverySnapshot` Cloud Functions on Node 22;
+- per-user Firestore revision and stable-operation ledger;
+- owner-read/direct-client-write-denied Firestore Rules; and
+- strictly validated empty-device recovery.
+
+Firebase remains disabled unless all required runtime values are supplied. In
+local-only mode the outbox remains authoritative, nothing is falsely marked
+synced, and the complete learning loop keeps working. Real-project creation and
+deployment remain owner-operated; see `Firebase_Integration.md`.
 
 ## Delivery Flow
 
@@ -29,120 +37,141 @@ Local learning/analytics transaction
   → Insert or replace stable outbox operation
   → Connectivity transport becomes available
   → Read ready operations by created_at, operation_id
-  → Push bounded batch through SyncRemoteGateway
-  → Apply one outcome per operation
-      → accepted / duplicate / superseded: acknowledge locally
+  → Require authenticated Firebase user
+  → Push at most 25 operations through callable SyncRemoteGateway
+  → Function verifies UID ownership, stable ID, payload, and state transition
+  → Transactionally materialize entity + operation ledger + user revision
+  → Apply one outcome per operation locally
+      → accepted / duplicate / superseded: acknowledge
       → retryable failure / missing acknowledgement: schedule retry
       → permanent rejection / retry limit: dead-letter
-  → Prune old acknowledged operations and their synced analytics sources
+      → authentication failure: preserve pending attempt unchanged
+  → Prune old acknowledged operations and synced analytics sources
 ```
 
 `connectivity_plus` only indicates that a network transport exists. It does not
-prove internet or backend reachability. Every production gateway request must
-therefore use timeouts and translate transient transport failures into
-`SyncTransportException`; the worker keeps those operations pending.
+prove backend reachability. The gateway translates callable failures into an
+authentication or transport exception; local learning is never rolled back.
 
 ## Worker Defaults
 
 | Setting | Default | Purpose |
 |---|---:|---|
-| Batch size | 25 operations | Bound request and local transaction work |
+| Batch size | 25 operations | Bound request and transaction work |
 | Maximum batches per run | 10 | Prevent an unbounded foreground run |
-| First retry | 5 seconds | Recover quickly from a transient failure |
+| First retry | 5 seconds | Recover quickly from transient failure |
 | Retry progression | Exponential, doubling | Reduce repeated load |
 | Maximum retry delay | 15 minutes | Cap recovery latency |
-| Maximum attempts | 5 | Quarantine permanently failing work |
+| Maximum attempts | 5 | Quarantine permanent failure |
 | Synced retention | 7 days | Keep a short acknowledgement audit window |
 | Prune limit | 200 records | Bound cleanup work |
 
-Only `pending` operations with no `next_attempt_at`, or with a due
-`next_attempt_at`, are ready. `deadLetter` operations are never retried or
-pruned automatically.
+Only `pending` operations whose `next_attempt_at` is absent or due are ready.
+`deadLetter` operations are neither retried nor pruned automatically.
 
-## Acknowledgement and Conflict Policy
+## Outcome and Conflict Policy
 
 | Remote outcome | Local transition | Learning-state effect |
 |---|---|---|
 | `accepted` | `synced`, acknowledgement `accepted` | None |
-| `duplicate` | `synced`, acknowledgement `duplicate` | None; idempotent replay succeeded |
-| `superseded` | `synced`, acknowledgement `superseded` | None; never rewrite local score, answer, or insight |
-| `retryableFailure` | Remain `pending`; set next attempt | None |
-| Missing operation result | Remain `pending`; set next attempt | None |
-| `rejected` | `deadLetter` immediately | None; preserve for diagnosis |
-| Transport exception | Entire attempted batch remains pending or reaches retry cap | None |
+| `duplicate` | `synced`, acknowledgement `duplicate` | None; replay succeeded |
+| `superseded` | `synced`, acknowledgement `superseded` | None; never rewrite local evidence |
+| `retryableFailure` | Stay pending; schedule next attempt | None |
+| Missing result | Stay pending; schedule next attempt | None |
+| `rejected` | `deadLetter` immediately | None; retain for diagnosis |
+| Transport exception | Batch remains pending or reaches retry cap | None |
+| Authentication missing/expired | Batch stays pending without attempt increment | Wait for sign-in |
 
-The remote service owns comparison of its stored revision with the submitted
-operation. `superseded` means the remote service already has a newer valid
-version; it is a successful delivery outcome, not permission for the upload
-worker to mutate deterministic local learning results.
+`superseded` is a successful delivery outcome, not permission for the upload
+worker to mutate local answers, score, weakness, recommendation, or insight.
 
-## Idempotency and Ordering Contract
+## Idempotency and Server Validation
 
-- `operation_id` is the idempotency key and must be unique remotely.
-- The gateway must preserve the list order supplied by the worker.
-- Pending work is read by `created_at ASC, operation_id ASC`.
-- Session mutations carry `syncVersion`; the remote service accepts only valid
-  forward state transitions and newer versions.
-- Answer and session-progress operation IDs are stable and their pending local
-  payload is replaced by the latest device write.
-- Terminal cancellation, expiry, and completion operations remain explicit.
-- Analytics event creation is idempotent by its stable event/operation ID.
-- A retry after an uncertain response is safe: a remote duplicate
-  acknowledgement closes the local operation.
+Pending work is ordered by `created_at ASC, operation_id ASC`. The stable IDs
+are:
 
-Cross-device inbound reconciliation is not part of this upload worker. It will
-be designed with Firebase authentication and remote ownership in Step 10.
+```text
+<sessionId>:start
+<sessionId>:answer:<questionId>
+<sessionId>:progress
+<sessionId>:cancelled
+<sessionId>:expired
+<sessionId>:complete
+analytics:<eventId>
+```
 
-## SQLite Schema V5
+The server rejects arbitrary idempotency keys, forged owners, unsafe IDs,
+oversized payloads, invalid UTC times, unsupported entity/operation types,
+answer/session mismatches, and invalid lifecycle or revision transitions. The
+authenticated UID—not payload identity—is authoritative.
 
-`sync_outbox` adds:
+The operation ledger stores the stable ID, canonical payload hash, client
+creation time, processing time, and remote revision. The same payload returns
+`duplicate`; an older mutation under a replaceable key returns `superseded`; a
+newer valid answer/progress payload can advance that entity and ledger entry.
 
-- `last_attempt_at` and `next_attempt_at` for scheduling;
-- `synced_at` for acknowledgement retention;
-- `dead_lettered_at` for permanent-failure audit;
-- `acknowledgement` for `accepted`, `duplicate`, or `superseded`; and
-- `remote_revision` for remote conflict evidence.
+## Cross-Device Recovery
 
-The readiness index covers `(status, next_attempt_at, created_at)`. Migration
-from v4 preserves queued records and backfills legacy `synced` rows with their
-creation time and an `accepted` acknowledgement.
+Inbound recovery is separate from upload acknowledgement:
 
-## Retention
+```text
+Authenticated UID
+  → Pull owned sessions/answers and remote revision
+  → Require matching permanent local account binding
+  → If any local session exists: skip inbound import
+  → Otherwise validate limits, lifecycle, timestamps, IDs, questions/options
+  → Recompute correctness and completed score from installed local content
+  → Import transactionally and rebuild deterministic insight in memory
+```
 
-At the start of an online run, acknowledged outbox records older than seven days
-are deleted in a bounded transaction. When an acknowledged record represents
-an analytics event, its already-synced source row is deleted in the same
-transaction. Learning sessions, answers, results, profiles, recommendations,
-pending operations, and dead letters are not removed by this policy.
+At most 200 sessions, 500 answers per session, and 5,000 answers total are
+accepted. Only one remote session may be active. Completed sessions require
+every response. Unknown questions/options or a mismatched owner fail closed.
+Step 10 deliberately does not merge two non-empty device histories; existing
+local data is preserved and uploaded.
+
+## Local Schema and Retention
+
+SQLite schema v5 added retry scheduling, acknowledgement, remote revision,
+dead-letter, and retention fields to `sync_outbox`. Schema v7 adds the singleton
+`account_binding` table with Firebase UID, binding time, last recovery time, and
+observed remote revision.
+
+At online-run start, acknowledged outbox records older than seven days are
+deleted in a bounded transaction. A linked already-synced analytics source is
+deleted in the same transaction. Learning rows, pending work, and dead letters
+are preserved.
 
 ## Validation
 
-Automated tests use real temporary SQLite databases and fake remote gateways to
-cover:
+Automated coverage includes:
 
-- offline retention followed by reconnect delivery;
-- concurrent trigger coalescing into one in-flight run;
-- batching and accepted/duplicate/superseded acknowledgement;
-- exponential backoff and the fifth-attempt dead-letter transition;
-- uncertain transport delivery followed by an idempotent duplicate;
-- permanent rejection and omitted acknowledgement handling;
-- v1→v5 and direct v4→v5 migrations; and
-- transactional retention of synced analytics while preserving dead letters.
+- offline retention, reconnect delivery, single-flight behavior, and batching;
+- accepted/duplicate/superseded acknowledgement and uncertain retry;
+- retry cap, rejection, omitted result, dead letter, and retention;
+- authentication failure with unchanged pending attempt;
+- account claim, owner-conflict refusal, and SQLite v1→v7 migration;
+- empty-device import, local score recomputation, and local-data preservation;
+- Firebase runtime configuration validation; and
+- server core ownership, lifecycle, stable-ID, and canonical-hash validation.
 
 Run:
 
 ```bash
-flutter test test/services/sync test/persistence/local_persistence_integration_test.dart
+flutter test test/services/sync test/features/auth \
+  test/persistence/local_persistence_integration_test.dart
 flutter test
+npm --prefix functions test
 ```
 
-## Deferred to Remote Integration
+The Firestore Rules test additionally requires installed npm dependencies and a
+running Firestore emulator, as documented in `Firebase_Integration.md`.
 
-- Authenticated Firebase `SyncRemoteGateway` implementation and bootstrap
-  registration.
-- Firestore security rules, server-side idempotency ledger, and revision
-  validation.
-- Cross-device download/reconciliation and account recovery.
-- Operator visibility, reason classification, and controlled dead-letter
-  re-drive.
-- OS-scheduled background execution beyond app startup and reconnect triggers.
+## Deferred
+
+- Owner configuration/deployment of real development and production Firebase
+  projects.
+- General reconciliation between two non-empty device histories.
+- Explicit local-data export/reset and safe account switching.
+- Operator dead-letter inspection/re-drive and OS-scheduled background sync.
+- App Check, observability, backup, retention/deletion policy, and provider auth.

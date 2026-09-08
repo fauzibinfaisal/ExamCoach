@@ -16,6 +16,8 @@ erDiagram
     USER ||--o{ AI_USAGE : consumes
     USER ||--o{ SUBSCRIPTION : owns
     USER ||--o{ ANALYTICS_EVENT : generates
+    USER ||--o| ACCOUNT_BINDING : bound_on_device
+    USER ||--o{ REMOTE_OPERATION : deduplicates
     EXAM_SESSION ||--o{ SYNC_OUTBOX_OPERATION : produces
     ANALYTICS_EVENT ||--o| SYNC_OUTBOX_OPERATION : queued_as
 ```
@@ -34,6 +36,8 @@ erDiagram
 - Subscription
 - AnalyticsEvent
 - SyncOutboxOperation
+- AccountBinding
+- RemoteOperation
 
 ## Important Fields
 ExamSession: userId, testId, mode, start/end time, score, status, syncVersion.
@@ -46,6 +50,9 @@ publisher, publishedAt.
 SyncOutboxOperation: operationId, entityType, entityId, operation, payloadJson,
 createdAt, attempts, status, lastAttemptAt, nextAttemptAt, syncedAt,
 deadLetteredAt, acknowledgement, remoteRevision.
+AccountBinding: firebaseUid, boundAt, lastRecoveredAt, remoteRevision.
+RemoteOperation: operationId, entityType, entityId, payloadHash, createdAt,
+processedAt, remoteRevision.
 
 ## Storage
 Firestore is appropriate for the initial mobile/backend workload. Add analytical warehouse/SQL infrastructure later when query volume or B2B analytics justify it.
@@ -60,3 +67,11 @@ response, cancellation, expiry, and review behavior are documented in
 conflict, and retention rules are documented in `Sync_Architecture.md`. Human
 content review and publication are documented in
 `../operations/Human_Question_Review_Workflow.md`.
+
+## Implemented Firestore Shape
+
+Authenticated remote learning data is materialized under `users/{uid}` with
+subcollections `sessions`, nested `answers`, `operations`, and `analytics`.
+Mobile clients can read only their own tree and cannot write it directly;
+callable Functions validate and apply all mutations. See
+`Firebase_Integration.md` for setup, rules, recovery, and limitations.

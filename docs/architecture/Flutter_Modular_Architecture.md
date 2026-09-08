@@ -49,6 +49,13 @@ Bloc manages workflow/state, not complex scoring algorithms.
 ## Offline
 Use local repositories, sync queue, connectivity observer, and conflict handler.
 
+The implemented `features/auth` module separates Firebase data access,
+account-binding/recovery domain contracts, auth Cubit orchestration, and account
+presentation. `services/firebase` owns optional runtime initialization, while
+`services/sync` keeps the provider-neutral gateway and Firebase adapter behind
+the same worker contract. Missing Firebase configuration must not cross into or
+disable the learning feature.
+
 ## Engineering Priority
 Build and test:
 Question → Answer → Score → Weakness → Recommendation → Drill → Updated Insight
