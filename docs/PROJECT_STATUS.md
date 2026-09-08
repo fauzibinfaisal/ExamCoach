@@ -53,8 +53,9 @@ has been human-approved or published.
 | 12 | Product analytics, accessibility, performance, CI, and release readiness | Planned |
 
 Current position: **Step 10 of 12 complete (83%)**. Current development version
-is `0.10.0+10`; SQLite schema is v7. Integration target is `develop`; `main`
-remains unchanged until owner testing and release approval.
+is `0.10.0+10`; SQLite schema is v7. Step 10 was integrated into `develop`
+through [PR #10](https://github.com/fauzibinfaisal/ExamCoach/pull/10);
+`main` remains unchanged until owner testing and release approval.
 
 ## Step 10 Delivered
 
