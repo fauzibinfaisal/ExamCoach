@@ -52,8 +52,8 @@ guarantee passing.
 | 12 | Product analytics, accessibility, performance, CI, and release readiness | Next |
 
 Current position: **Step 11 of 12 complete (92%)**. Current development version
-is `0.11.0+11`; SQLite schema is v8. Work is on
-`feature/structured-ai-coach` for protected integration into `develop`.
+is `0.11.0+11`; SQLite schema is v8. Step 11 is integrated into `develop`
+through [PR #12](https://github.com/fauzibinfaisal/ExamCoach/pull/12).
 `main` remains release-only and unchanged.
 
 ## Step 11 Delivered

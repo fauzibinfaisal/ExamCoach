@@ -96,8 +96,9 @@ all fail safely when owner configuration is absent.
 ### Git Integration
 
 - Implemented on `feature/structured-ai-coach` from `develop`.
-- Protected pull-request integration into `develop` is the remaining repository
-  handoff action; `main` stays unchanged.
+- Reviewed and squash-merged into `develop` through
+  [PR #12](https://github.com/fauzibinfaisal/ExamCoach/pull/12); `main` stays
+  unchanged.
 
 ### Result
 
