@@ -11,6 +11,7 @@ class LearningFlowState {
   const LearningFlowState({
     this.status = LearningFlowStatus.idle,
     this.session,
+    this.latestCompletedSession,
     this.questions = const [],
     this.currentIndex = 0,
     this.selectedOptionId,
@@ -26,6 +27,7 @@ class LearningFlowState {
 
   final LearningFlowStatus status;
   final ExamSession? session;
+  final ExamSession? latestCompletedSession;
   final List<Question> questions;
   final int currentIndex;
   final String? selectedOptionId;
@@ -77,6 +79,7 @@ class LearningFlowState {
     LearningFlowStatus? status,
     ExamSession? session,
     bool clearSession = false,
+    ExamSession? latestCompletedSession,
     List<Question>? questions,
     int? currentIndex,
     String? selectedOptionId,
@@ -96,6 +99,8 @@ class LearningFlowState {
     return LearningFlowState(
       status: status ?? this.status,
       session: clearSession ? null : session ?? this.session,
+      latestCompletedSession:
+          latestCompletedSession ?? this.latestCompletedSession,
       questions: questions ?? this.questions,
       currentIndex: currentIndex ?? this.currentIndex,
       selectedOptionId: clearSelectedOption

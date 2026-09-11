@@ -48,6 +48,11 @@ sessions; correctness and scores are recomputed by the local deterministic core.
 See `../engineering/Firebase_Integration.md` and
 `../engineering/Sync_Architecture.md`.
 
+Step 11 implements the AI and monetization boundary: canonical structured
+learning context, server policy/quota/cache, strict OpenAI output, a RevenueCat
+offering/purchase/restore client, and backend entitlement refresh. See
+`../engineering/AI_Coach_and_Subscriptions.md`.
+
 ## Versioning
 Version taxonomy, question content, scoring configuration, learning algorithms, analytics schemas, and AI prompts.
 
@@ -58,6 +63,11 @@ Implemented user-learning writes go only through callable Functions. Firestore
 clients may read their own tree but cannot write it directly. Firebase is
 disabled when runtime configuration is absent or incomplete; no project or
 server credential is embedded in the repository.
+
+AI provider and RevenueCat REST secrets are bound to their individual Functions.
+The mobile app receives only platform public RevenueCat SDK keys. Premium access
+is derived from a backend RevenueCat lookup and stored under the authenticated
+UID; client purchase state alone is never authoritative.
 
 ## Testing
 Unit: learning engine.

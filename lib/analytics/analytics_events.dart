@@ -13,6 +13,14 @@ abstract final class AnalyticsEvents {
   static const weaknessViewed = 'weakness_viewed';
   static const recommendationViewed = 'recommendation_viewed';
   static const recommendationClicked = 'recommendation_clicked';
+  static const aiInsightRequested = 'ai_insight_requested';
+  static const aiInsightGenerated = 'ai_insight_generated';
+  static const aiInsightViewed = 'ai_insight_viewed';
+  static const aiQuotaExhausted = 'ai_quota_exhausted';
+  static const paywallViewed = 'paywall_viewed';
+  static const purchaseStarted = 'purchase_started';
+  static const subscriptionStarted = 'subscription_started';
+  static const restorePurchase = 'restore_purchase';
 }
 
 class AnalyticsEvent {

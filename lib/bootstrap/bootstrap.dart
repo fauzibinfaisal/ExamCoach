@@ -1,5 +1,12 @@
 import 'package:exam_coach/app/app.dart';
+import 'package:exam_coach/analytics/analytics_events.dart';
 import 'package:exam_coach/analytics/local_analytics.dart';
+import 'package:exam_coach/features/ai_coach/application/ai_coach_context_builder.dart';
+import 'package:exam_coach/features/ai_coach/application/ai_coach_cubit.dart';
+import 'package:exam_coach/features/ai_coach/data/firebase_ai_coach_repository.dart';
+import 'package:exam_coach/features/ai_coach/data/local_ai_coach_cache_store.dart';
+import 'package:exam_coach/features/ai_coach/domain/ai_coach_cache_store.dart';
+import 'package:exam_coach/features/ai_coach/domain/ai_coach_repository.dart';
 import 'package:exam_coach/features/auth/application/auth_cubit.dart';
 import 'package:exam_coach/features/auth/data/firebase_auth_repository.dart';
 import 'package:exam_coach/features/auth/data/local_account_data_store.dart';
@@ -20,6 +27,10 @@ import 'package:exam_coach/services/sync/application/sync_coordinator.dart';
 import 'package:exam_coach/services/sync/application/sync_worker.dart';
 import 'package:exam_coach/services/sync/data/connectivity_plus_monitor.dart';
 import 'package:exam_coach/services/sync/data/firebase_sync_gateway.dart';
+import 'package:exam_coach/features/subscription/application/subscription_cubit.dart';
+import 'package:exam_coach/features/subscription/data/revenuecat_subscription_repository.dart';
+import 'package:exam_coach/features/subscription/data/subscription_runtime_config.dart';
+import 'package:exam_coach/features/subscription/domain/subscription_repository.dart';
 import 'package:flutter/widgets.dart';
 
 Future<void> bootstrap() async {
@@ -28,6 +39,8 @@ Future<void> bootstrap() async {
   final seedRepository = MockQuestionRepository();
   late final LearningFlowCubit learningFlowCubit;
   late final AuthCubit authCubit;
+  late final AiCoachCubit aiCoachCubit;
+  late final SubscriptionCubit subscriptionCubit;
   try {
     final bundledBank = await BundledQuestionBankLoader().load();
     final database = await ExamCoachDatabase.openDefault();
@@ -42,10 +55,11 @@ Future<void> bootstrap() async {
       boundUserId: await accountDataStore.loadBoundUserId(),
     );
     final persistenceRepository = LocalLearningPersistenceRepository(database);
+    final analytics = LocalAnalytics(database, userIdentity: userIdentity);
     learningFlowCubit = _createCubit(
       questionRepository,
       persistenceRepository: persistenceRepository,
-      analytics: LocalAnalytics(database, userIdentity: userIdentity),
+      analytics: analytics,
       userIdentity: userIdentity,
     );
     await learningFlowCubit.restore();
@@ -54,6 +68,18 @@ Future<void> bootstrap() async {
     final services = firebase.services;
     if (services == null) {
       authCubit = AuthCubit.unavailable(firebase.message);
+      aiCoachCubit = _createAiCoachCubit(
+        questionRepository: questionRepository,
+        repository: UnavailableAiCoachRepository(firebase.message),
+        cacheStore: LocalAiCoachCacheStore(database),
+        userIdentity: userIdentity,
+        analytics: analytics,
+      );
+      subscriptionCubit = _createSubscriptionCubit(
+        repository: UnavailableSubscriptionRepository(firebase.message),
+        userIdentity: userIdentity,
+        analytics: analytics,
+      );
     } else {
       final connectivity = ConnectivityPlusMonitor();
       final gateway = FirebaseSyncGateway(
@@ -86,6 +112,31 @@ Future<void> bootstrap() async {
         recoveryGateway: gateway,
         syncCoordinator: syncCoordinator,
       );
+      aiCoachCubit = _createAiCoachCubit(
+        questionRepository: questionRepository,
+        repository: FirebaseAiCoachRepository(
+          functions: services.functions,
+          auth: services.auth,
+        ),
+        cacheStore: LocalAiCoachCacheStore(database),
+        userIdentity: userIdentity,
+        analytics: analytics,
+      );
+      final subscriptionConfig = SubscriptionRuntimeConfig.fromEnvironment();
+      final subscriptionRepository = RevenueCatSubscriptionRepository(
+        functions: services.functions,
+        auth: services.auth,
+        config: subscriptionConfig,
+      );
+      subscriptionCubit = _createSubscriptionCubit(
+        repository: subscriptionRepository.isAvailable
+            ? subscriptionRepository
+            : UnavailableSubscriptionRepository(
+                subscriptionRepository.unavailableReason,
+              ),
+        userIdentity: userIdentity,
+        analytics: analytics,
+      );
       await authCubit.start();
     }
   } on Object catch (error, stackTrace) {
@@ -97,21 +148,48 @@ Future<void> bootstrap() async {
         context: ErrorDescription('while opening local persistence'),
       ),
     );
-    learningFlowCubit = _createCubit(seedRepository);
+    final userIdentity = UserIdentity();
+    final analytics = InMemoryAnalytics();
+    learningFlowCubit = _createCubit(
+      seedRepository,
+      analytics: analytics,
+      userIdentity: userIdentity,
+    );
     authCubit = AuthCubit.unavailable(
       'Penyimpanan akun tidak tersedia; mode belajar sementara tetap aktif.',
+    );
+    aiCoachCubit = _createAiCoachCubit(
+      questionRepository: seedRepository,
+      repository: const UnavailableAiCoachRepository(
+        'AI Coach tidak tersedia tanpa penyimpanan lokal yang aman.',
+      ),
+      cacheStore: MemoryAiCoachCacheStore(),
+      userIdentity: userIdentity,
+      analytics: analytics,
+    );
+    subscriptionCubit = _createSubscriptionCubit(
+      repository: const UnavailableSubscriptionRepository(
+        'Langganan tidak tersedia tanpa penyimpanan dan akun yang aman.',
+      ),
+      userIdentity: userIdentity,
+      analytics: analytics,
     );
   }
 
   runApp(
-    ExamCoachApp(learningFlowCubit: learningFlowCubit, authCubit: authCubit),
+    ExamCoachApp(
+      learningFlowCubit: learningFlowCubit,
+      authCubit: authCubit,
+      aiCoachCubit: aiCoachCubit,
+      subscriptionCubit: subscriptionCubit,
+    ),
   );
 }
 
 LearningFlowCubit _createCubit(
   QuestionRepository questionRepository, {
   LocalLearningPersistenceRepository? persistenceRepository,
-  LocalAnalytics? analytics,
+  AnalyticsTracker? analytics,
   UserIdentity? userIdentity,
 }) {
   return LearningFlowCubit(
@@ -125,3 +203,27 @@ LearningFlowCubit _createCubit(
     userIdentity: userIdentity,
   );
 }
+
+AiCoachCubit _createAiCoachCubit({
+  required QuestionRepository questionRepository,
+  required AiCoachRepository repository,
+  required AiCoachCacheStore cacheStore,
+  required UserIdentity userIdentity,
+  required AnalyticsTracker analytics,
+}) => AiCoachCubit(
+  contextBuilder: AiCoachContextBuilder(questionRepository),
+  repository: repository,
+  cacheStore: cacheStore,
+  userIdentity: userIdentity,
+  analytics: analytics,
+);
+
+SubscriptionCubit _createSubscriptionCubit({
+  required SubscriptionRepository repository,
+  required UserIdentity userIdentity,
+  required AnalyticsTracker analytics,
+}) => SubscriptionCubit(
+  repository: repository,
+  userIdentity: userIdentity,
+  analytics: analytics,
+);

@@ -10,13 +10,17 @@ Tryout overview → Answer or skip → Pre-submit review → Score
 
 SQLite stores downloaded prototype content, active sessions, answers/skips, learning history, recommendations, analytics, and an idempotent sync outbox. Interrupted question and pre-submit review states can be resumed after relaunch; cancelled or expired partial sessions do not affect learning insight.
 
-Current development version: `0.10.0+10`. Major version zero is intentional
+Current development version: `0.11.0+11`. Major version zero is intentional
 while the product is unreleased. The connectivity-aware engine now has an
 optional authenticated Firebase gateway, server validation, and empty-device
 cross-device recovery. With no Firebase runtime configuration, the app remains
 fully local and learning never waits for sync.
 
-The deterministic learning engine is the source of truth. AI integration is intentionally not part of scoring, correctness, weakness analysis, or question selection.
+Step 11 adds a structured AI Coach, server-owned daily quota, local/server
+cache, and a RevenueCat offering/purchase/restore boundary. The deterministic
+learning engine remains the source of truth: AI is not part of scoring,
+correctness, weakness analysis, recommendation, or question selection. AI and
+subscriptions remain safely disabled until explicit owner configuration.
 
 ## Run
 
@@ -35,6 +39,21 @@ flutter build apk --debug
 flutter build ios --debug --no-codesign
 npm --prefix functions test
 ```
+
+## AI Coach and subscriptions
+
+After a completed tryout or drill, open AI Coach from Result or Home. In a
+local-only build it shows the deterministic insight and a clear configuration
+state. A configured build sends only canonical structured learning context to
+authenticated Functions, where policy, entitlement, quota, provider output,
+and cache are validated.
+
+The subscription page reads products and localized prices from the current
+RevenueCat offering; no price is embedded in the UI. Purchase and restore do
+not directly grant access—the backend rechecks RevenueCat and writes the trusted
+plan. Follow
+`docs/engineering/AI_Coach_and_Subscriptions.md` before adding any key, model,
+quota, entitlement, product, or price.
 
 ## Optional Firebase accounts and recovery
 
@@ -95,6 +114,7 @@ Read these documents before changing implementation:
 - `docs/engineering/Session_Controls_and_Review.md`
 - `docs/engineering/Sync_Architecture.md`
 - `docs/engineering/Firebase_Integration.md`
+- `docs/engineering/AI_Coach_and_Subscriptions.md`
 - `docs/engineering/Release_Versioning.md`
 - `docs/operations/AI_Question_Bank_Workflow.md`
 - `docs/operations/Human_Question_Review_Workflow.md`

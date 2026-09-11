@@ -1,0 +1,20 @@
+{
+  "enabled": false,
+  "policy_version": "ai_policy_v1",
+  "prompt_version": "ai_coach_v1",
+  "cache_ttl_seconds": 86400,
+  "plans": {
+    "free": {
+      "daily_quota": 0,
+      "study_plan_enabled": false
+    },
+    "premium_1": {
+      "daily_quota": 0,
+      "study_plan_enabled": true
+    },
+    "premium_2": {
+      "daily_quota": 0,
+      "study_plan_enabled": true
+    }
+  }
+}

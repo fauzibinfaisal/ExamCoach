@@ -92,6 +92,7 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
       emit(
         LearningFlowState(
           answerHistory: snapshot.answerHistory,
+          latestCompletedSession: snapshot.latestCompletedSession,
           latestScore: snapshot.latestScore,
           profiles: restoredProfiles,
           recommendation: restoredRecommendation,
@@ -122,6 +123,7 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
       emit(
         LearningFlowState(
           answerHistory: snapshot.answerHistory,
+          latestCompletedSession: snapshot.latestCompletedSession,
           latestScore: snapshot.latestScore,
           profiles: restoredProfiles,
           recommendation: restoredRecommendation,
@@ -144,6 +146,7 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
       emit(
         LearningFlowState(
           answerHistory: snapshot.answerHistory,
+          latestCompletedSession: snapshot.latestCompletedSession,
           latestScore: snapshot.latestScore,
           profiles: restoredProfiles,
           recommendation: restoredRecommendation,
@@ -180,6 +183,7 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
         selectedOptionId: currentAnswer?.selectedOptionId,
         currentAnswers: snapshot.activeAnswers,
         answerHistory: snapshot.answerHistory,
+        latestCompletedSession: snapshot.latestCompletedSession,
         latestScore: snapshot.latestScore,
         profiles: restoredProfiles,
         recommendation: restoredRecommendation,
@@ -258,6 +262,7 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
           session: session,
           questions: List.unmodifiable(questions),
           answerHistory: state.answerHistory,
+          latestCompletedSession: state.latestCompletedSession,
           latestScore: state.latestScore,
           profiles: state.profiles,
           previousProfiles: state.profiles,
@@ -487,6 +492,7 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
       emit(
         LearningFlowState(
           answerHistory: state.answerHistory,
+          latestCompletedSession: state.latestCompletedSession,
           latestScore: state.latestScore,
           profiles: state.profiles,
           recommendation: state.recommendation,
@@ -610,6 +616,7 @@ class LearningFlowCubit extends Cubit<LearningFlowState> {
         currentAnswers: currentAnswers,
         answerHistory: answerHistory,
         latestScore: score,
+        latestCompletedSession: completedSession,
         previousProfiles: previousProfiles,
         profiles: profiles,
         recommendation: recommendation,

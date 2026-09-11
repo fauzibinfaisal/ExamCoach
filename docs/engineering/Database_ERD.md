@@ -14,6 +14,8 @@ erDiagram
     TAXONOMY_NODE ||--o{ WEAKNESS_PROFILE : measures
     USER ||--o{ RECOMMENDATION : receives
     USER ||--o{ AI_USAGE : consumes
+    USER ||--o{ AI_INSIGHT : owns
+    EXAM_SESSION ||--o{ AI_INSIGHT : explains
     USER ||--o{ SUBSCRIPTION : owns
     USER ||--o{ ANALYTICS_EVENT : generates
     USER ||--o| ACCOUNT_BINDING : bound_on_device
@@ -33,6 +35,7 @@ erDiagram
 - WeaknessProfile
 - Recommendation
 - AIUsage
+- AIInsight
 - Subscription
 - AnalyticsEvent
 - SyncOutboxOperation
@@ -53,6 +56,8 @@ deadLetteredAt, acknowledgement, remoteRevision.
 AccountBinding: firebaseUid, boundAt, lastRecoveredAt, remoteRevision.
 RemoteOperation: operationId, entityType, entityId, payloadHash, createdAt,
 processedAt, remoteRevision.
+AIInsight: contextKey, userId, sourceSessionId, promptVersion, provider, model,
+structuredResponse, generatedAt, expiresAt.
 
 ## Storage
 Firestore is appropriate for the initial mobile/backend workload. Add analytical warehouse/SQL infrastructure later when query volume or B2B analytics justify it.
@@ -71,7 +76,10 @@ content review and publication are documented in
 ## Implemented Firestore Shape
 
 Authenticated remote learning data is materialized under `users/{uid}` with
-subcollections `sessions`, nested `answers`, `operations`, and `analytics`.
+subcollections `sessions`, nested `answers`, `operations`, `analytics`,
+`ai_usage`, `ai_requests`, `ai_insights`, and `entitlements`.
 Mobile clients can read only their own tree and cannot write it directly;
 callable Functions validate and apply all mutations. See
 `Firebase_Integration.md` for setup, rules, recovery, and limitations.
+AI Coach and subscription trust boundaries are documented in
+`AI_Coach_and_Subscriptions.md`.

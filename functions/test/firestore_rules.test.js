@@ -25,6 +25,12 @@ test("Firestore rules isolate user data and deny client writes", async () => {
       await setDoc(doc(context.firestore(), "users/alice/sessions/s1"), {
         status: "active",
       });
+      await setDoc(doc(context.firestore(), "users/alice/ai_insights/i1"), {
+        summary: "Server-generated insight",
+      });
+      await setDoc(doc(context.firestore(), "config/ai_coach_policy"), {
+        enabled: true,
+      });
       await setDoc(
         doc(context.firestore(), "published_question_packs/published-pack"),
         {validation_status: "published"},
@@ -43,6 +49,16 @@ test("Firestore rules isolate user data and deny client writes", async () => {
     await assertFails(getDoc(doc(bob, "users/alice/sessions/s1")));
     await assertFails(getDoc(doc(guest, "users/alice/sessions/s1")));
     await assertFails(setDoc(aliceSession, {status: "completed"}));
+    await assertSucceeds(
+      getDoc(doc(alice, "users/alice/ai_insights/i1")),
+    );
+    await assertFails(getDoc(doc(bob, "users/alice/ai_insights/i1")));
+    await assertFails(
+      setDoc(doc(alice, "users/alice/ai_insights/i2"), {
+        summary: "Forged client insight",
+      }),
+    );
+    await assertFails(getDoc(doc(alice, "config/ai_coach_policy")));
     await assertSucceeds(
       getDoc(doc(guest, "published_question_packs/published-pack")),
     );

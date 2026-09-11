@@ -3,6 +3,19 @@
 const {initializeApp} = require("firebase-admin/app");
 const {FieldValue, getFirestore} = require("firebase-admin/firestore");
 const {HttpsError, onCall} = require("firebase-functions/v2/https");
+const {defineJsonSecret} = require("firebase-functions/params");
+const {AiCoachService, AiCoachServiceError} = require("./ai_coach_service");
+const {
+  AiProviderError,
+  EmulatorAiCoachProvider,
+  OpenAiCoachProvider,
+} = require("./openai_ai_provider");
+const {
+  EmulatorRevenueCatSubscriberProvider,
+  EntitlementServiceError,
+  RevenueCatEntitlementService,
+  RevenueCatSubscriberProvider,
+} = require("./revenuecat_entitlement");
 const {
   ProtocolError,
   TERMINAL_STATUSES,
@@ -13,6 +26,16 @@ const {
 initializeApp();
 const db = getFirestore();
 const REGION = "asia-southeast2";
+const AI_PROVIDER_CONFIG = defineJsonSecret("AI_PROVIDER_CONFIG");
+const REVENUECAT_SERVER_CONFIG = defineJsonSecret("REVENUECAT_SERVER_CONFIG");
+const aiCoachService = new AiCoachService({
+  database: db,
+  providerFactory: createAiCoachProvider,
+});
+const entitlementService = new RevenueCatEntitlementService({
+  database: db,
+  providerFactory: createRevenueCatProvider,
+});
 
 exports.pushSyncBatch = onCall(
   {region: REGION, timeoutSeconds: 60, memory: "256MiB"},
@@ -105,6 +128,68 @@ exports.pullRecoverySnapshot = onCall(
       sessions,
       answers,
     };
+  },
+);
+
+exports.getAiCoachStatus = onCall(
+  {region: REGION, timeoutSeconds: 30, memory: "256MiB"},
+  async (request) => {
+    const uid = requireUid(request);
+    requireProtocol(request.data);
+    try {
+      return {
+        protocolVersion: 1,
+        quota: await aiCoachService.getStatus(uid),
+      };
+    } catch (error) {
+      throw mapAiCoachError(error);
+    }
+  },
+);
+
+exports.requestAiCoachInsight = onCall(
+  {
+    region: REGION,
+    timeoutSeconds: 60,
+    memory: "256MiB",
+    secrets: [AI_PROVIDER_CONFIG],
+  },
+  async (request) => {
+    const uid = requireUid(request);
+    const data = requireProtocol(request.data);
+    try {
+      const result = await aiCoachService.request(uid, data);
+      return {protocolVersion: 1, ...result};
+    } catch (error) {
+      throw mapAiCoachError(error);
+    }
+  },
+);
+
+exports.refreshSubscriptionEntitlement = onCall(
+  {
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+    secrets: [REVENUECAT_SERVER_CONFIG],
+  },
+  async (request) => {
+    const uid = requireUid(request);
+    requireProtocol(request.data);
+    try {
+      return {
+        protocolVersion: 1,
+        entitlement: await entitlementService.refresh(uid),
+      };
+    } catch (error) {
+      if (error instanceof EntitlementServiceError) {
+        throw new HttpsError(error.code, error.message);
+      }
+      throw new HttpsError(
+        "internal",
+        "Status langganan gagal diverifikasi dengan aman.",
+      );
+    }
   },
 );
 
@@ -372,6 +457,56 @@ function safeResultId(source) {
 
 function integerOrZero(value) {
   return Number.isSafeInteger(value) && value >= 0 ? value : 0;
+}
+
+function createAiCoachProvider() {
+  if (process.env.FUNCTIONS_EMULATOR === "true" &&
+      process.env.EXAMCOACH_AI_EMULATOR_STUB === "true") {
+    return new EmulatorAiCoachProvider();
+  }
+  let config;
+  try {
+    config = AI_PROVIDER_CONFIG.value();
+  } catch (_) {
+    throw new AiProviderError("AI provider secret is not configured");
+  }
+  if (!config || config.provider !== "openai") {
+    throw new AiProviderError("AI provider must be configured as openai");
+  }
+  return new OpenAiCoachProvider({
+    apiKey: config.apiKey,
+    model: config.model,
+  });
+}
+
+function createRevenueCatProvider() {
+  if (process.env.FUNCTIONS_EMULATOR === "true" &&
+      process.env.EXAMCOACH_SUBSCRIPTION_EMULATOR_STUB === "true") {
+    return new EmulatorRevenueCatSubscriberProvider();
+  }
+  let config;
+  try {
+    config = REVENUECAT_SERVER_CONFIG.value();
+  } catch (_) {
+    throw new EntitlementServiceError(
+      "failed-precondition",
+      "Secret verifikasi RevenueCat belum dikonfigurasi.",
+    );
+  }
+  return new RevenueCatSubscriberProvider({
+    apiKey: config?.apiKey,
+    entitlementPlans: config?.entitlementPlans,
+  });
+}
+
+function mapAiCoachError(error) {
+  if (error instanceof ProtocolError) {
+    return new HttpsError("invalid-argument", error.message);
+  }
+  if (error instanceof AiCoachServiceError) {
+    return new HttpsError(error.code, error.message, error.details);
+  }
+  return new HttpsError("internal", "AI Coach request failed safely.");
 }
 
 function publicSession(value) {

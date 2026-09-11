@@ -62,8 +62,12 @@ class HomePage extends StatelessWidget {
                 const SizedBox(height: 18),
                 const _AccountSyncCard(),
                 const SizedBox(height: 18),
+                const _SubscriptionCard(),
+                const SizedBox(height: 18),
                 if (state.latestScore != null) ...[
                   _RecentResultCard(state: state),
+                  const SizedBox(height: 18),
+                  const _AiCoachCard(),
                   const SizedBox(height: 18),
                 ],
                 if (state.errorMessage case final message?) ...[
@@ -98,6 +102,50 @@ class HomePage extends StatelessWidget {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _SubscriptionCard extends StatelessWidget {
+  const _SubscriptionCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        key: const Key('subscription-card'),
+        onTap: () => context.push('/subscription'),
+        leading: const Icon(Icons.workspace_premium_outlined),
+        title: const Text(
+          'Paket & langganan',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+        subtitle: const Text('Lihat offering dan harga resmi dari toko.'),
+        trailing: const Icon(Icons.chevron_right_rounded),
+      ),
+    );
+  }
+}
+
+class _AiCoachCard extends StatelessWidget {
+  const _AiCoachCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        key: const Key('ai-coach-card'),
+        onTap: () => context.push('/ai-coach'),
+        leading: const Icon(Icons.auto_awesome_rounded),
+        title: const Text(
+          'AI Coach',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+        subtitle: const Text(
+          'Ubah insight deterministik menjadi arahan belajar yang ringkas.',
+        ),
+        trailing: const Icon(Icons.chevron_right_rounded),
       ),
     );
   }

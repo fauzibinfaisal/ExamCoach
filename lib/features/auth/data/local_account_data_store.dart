@@ -300,7 +300,11 @@ class LocalAccountDataStore implements AccountDataStore {
     DatabaseExecutor transaction,
     String requestedUserId,
   ) async {
-    for (final table in const ['exam_sessions', 'analytics_events']) {
+    for (final table in const [
+      'exam_sessions',
+      'analytics_events',
+      'ai_coach_insights',
+    ]) {
       final rows = await transaction.rawQuery(
         'SELECT DISTINCT user_id FROM $table',
       );
