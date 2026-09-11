@@ -61,8 +61,17 @@ Show:
 - study schedule
 - concise motivation
 
+The Step 11 implementation requires a completed deterministic result, shows
+server-owned daily quota, supports validated local/server cache, and falls back
+to deterministic insight when unavailable. Free schedules can be disabled by
+policy; AI never changes official learning output.
+
 ## Free/Premium Principle
 Free must provide meaningful value and core result visibility. Premium primarily unlocks frequency, depth, personalization, and advanced intelligence.
+
+Offerings, package descriptions, periods, and localized prices come from the
+store through RevenueCat. The backend revalidates RevenueCat entitlement before
+materializing `premium_1` or `premium_2`; client purchase state is not trusted.
 
 ## Initial Drill Policy
 70% weak, 20% medium, 10% strong. This is a configurable starting hypothesis and must be experimentally validated.

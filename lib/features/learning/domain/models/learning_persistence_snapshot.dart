@@ -7,6 +7,7 @@ import 'package:exam_coach/learning_engine/models/weakness_profile.dart';
 class LearningPersistenceSnapshot {
   const LearningPersistenceSnapshot({
     this.activeSession,
+    this.latestCompletedSession,
     this.activeAnswers = const [],
     this.answerHistory = const [],
     this.latestScore,
@@ -15,6 +16,7 @@ class LearningPersistenceSnapshot {
   });
 
   final ExamSession? activeSession;
+  final ExamSession? latestCompletedSession;
   final List<AnswerRecord> activeAnswers;
   final List<AnswerRecord> answerHistory;
   final ScoreResult? latestScore;

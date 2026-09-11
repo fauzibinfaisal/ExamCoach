@@ -1,5 +1,116 @@
 # Implementation Log
 
+## 2026-09-11 — Structured AI Coach, Server Quota, and Trusted Subscriptions
+
+### Objective
+
+Complete Step 11 without moving deterministic learning authority into AI or
+trusting a client-side purchase claim. Add structured coaching, cost controls,
+cache, store offering/purchase/restore, and backend entitlement validation that
+all fail safely when owner configuration is absent.
+
+### Implemented
+
+- Added canonical structured context derived only from a completed local
+  session, deterministic score, top weakness profiles, and deterministic
+  recommendation. UTC timestamps are truncated to milliseconds and recursive
+  sorted JSON is bound to a SHA-256 context key verified again by Functions.
+- Added AI Coach application/domain/data/presentation modules with complete
+  no-data, authentication, loading, ready, cached, quota, unavailable, and
+  failure states. Home and Result link to the new route.
+- Added authenticated AI status/generation Functions, configurable policy,
+  trusted Firestore entitlement, atomic UTC-day quota, capability-aware
+  same-context cache, duplicate request reservation, failure release, and
+  bounded expiry. A Free cached result is regenerated after a verified upgrade
+  before paid schedule capability is returned.
+- Added an OpenAI Responses API adapter with strict JSON Schema, `store: false`,
+  hashed user safety identifier, stable prompt cache key, timeout, token usage,
+  server-only secret, and output validation that rejects passing guarantees.
+- Added SQLite schema v8 `ai_coach_insights`, owner checks, completed-session
+  linkage, local expiry deletion, and restoration of the latest completed
+  session so AI Coach remains available after relaunch.
+- Added RevenueCat Flutter SDK integration using Firebase UID identity, current
+  offering/store-localized pricing, purchase, restore, and a safe disabled
+  runtime configuration.
+- Added authenticated backend RevenueCat subscriber lookup. Active entitlement
+  IDs map to configured AI policy plans; the highest eligible plan is selected
+  by configured capability/quota, materialized under the authenticated user,
+  and never accepted from the client.
+- Added Android Billing permission, public-key Dart-define placeholders,
+  ignored local secret template, disabled zero-quota policy template, and a
+  complete owner setup/manual acceptance guide.
+- Added AI/paywall/purchase/restore analytics without logging response content,
+  prices, payment details, or secrets.
+- Advanced the unreleased version from `0.10.0+10` to `0.11.0+11` and SQLite
+  schema from v7 to v8. iOS testing remains skipped by owner direction.
+
+### Key Files
+
+- `lib/features/ai_coach/`
+- `lib/features/subscription/`
+- `lib/features/learning/application/learning_flow_cubit.dart`
+- `lib/services/database/exam_coach_database.dart`
+- `functions/ai_coach_core.js`
+- `functions/ai_coach_service.js`
+- `functions/openai_ai_provider.js`
+- `functions/revenuecat_entitlement.js`
+- `functions/index.js`
+- `config/ai_coach_policy.example.json`
+- `functions/.secret.local.example`
+- `docs/engineering/AI_Coach_and_Subscriptions.md`
+
+### Technical Decisions
+
+- AI explains only canonical deterministic evidence; server validation and UI
+  fallback enforce the separation.
+- Use quota reservation before provider access, release only the matching failed
+  reservation, and avoid a second charge for an unexpired identical context.
+- Treat provider output and RevenueCat SDK purchase state as untrusted. OpenAI
+  output must pass schema/server validation; premium plans come only from a
+  backend RevenueCat lookup.
+- Keep prices and products in store/RevenueCat configuration, and keep OpenAI
+  and RevenueCat server keys in separate Function secrets.
+- Keep policy disabled with zero template quotas until the owner explicitly
+  decides model, quota, products, entitlement mapping, and activation.
+
+### Validation
+
+- `dart format lib test` — PASS.
+- `flutter analyze` — PASS; no issues found.
+- `flutter test` — PASS; 59 tests passed.
+- `npm --prefix functions test` — PASS; 17 backend tests passed.
+- Auth + Firestore + Functions emulator — PASS; two suites cover sync plus AI
+  auth, canonical request, cache, quota, entitlement upgrade, paid schedule,
+  and tamper refusal.
+- Firestore Rules emulator — PASS; owner AI read, cross-user/guest denial,
+  direct AI write denial, policy privacy, and existing content rules.
+- `npm audit --omit=dev` — PASS; zero production vulnerabilities.
+- `flutter build apk --debug` — PASS; `0.11.0` build `11`, minSdk 24,
+  169,220,184 bytes.
+- APK SHA-256 —
+  `1b464d139c259ae63d221190df5b5849f543f2baef0dd45d3854c04f2f442e64`.
+- iOS build/device/signing — skipped by owner direction.
+- No real Firebase project, provider key, RevenueCat project, store product, or
+  price was created or mutated.
+
+### Git Integration
+
+- Implemented on `feature/structured-ai-coach` from `develop`.
+- Protected pull-request integration into `develop` is the remaining repository
+  handoff action; `main` stays unchanged.
+
+### Result
+
+PASS for Step 11 repository implementation and local/emulator validation.
+Production AI and purchase acceptance require only the explicit owner actions
+in `docs/engineering/AI_Coach_and_Subscriptions.md`.
+
+### Next Step
+
+- Step 12 product analytics, accessibility, performance, CI, observability,
+  App Check, and release readiness.
+- Owner activation/testing for Firebase, OpenAI, RevenueCat, and Google Play.
+
 ## 2026-09-08 — Firebase Authentication and Safe Cross-Device Recovery
 
 ### Objective

@@ -14,7 +14,7 @@ The database is opened through `ExamCoachDatabase`, which accepts a `DatabaseFac
 
 ## Schema Version
 
-Current schema: `7`.
+Current schema: `8`.
 
 - Version 1: question packs, questions, exam sessions, user answers, weakness profiles, and recommendations.
 - Version 2: durable analytics events and the idempotent sync outbox.
@@ -26,6 +26,8 @@ Current schema: `7`.
   decision, and publication audit metadata.
 - Version 7: single-owner Firebase account binding, last-recovery time, and
   observed remote revision.
+- Version 8: authenticated structured AI Coach response cache keyed by canonical
+  learning context, with provider/prompt metadata and explicit expiry.
 
 Unknown migrations and database downgrades fail explicitly instead of silently rebuilding or deleting user data.
 
@@ -100,6 +102,16 @@ conflicting existing owner aborts the transaction. Sign-out does not delete the
 binding or local data, and a different account is refused until a future
 explicit destructive reset workflow exists.
 
+### AI Coach Cache
+
+- `ai_coach_insights`
+
+Only server-validated responses for an authenticated owner are persisted.
+Rows are keyed by the canonical context SHA-256, retain the source completed
+session as a foreign key, and store provider/model/prompt version plus generated
+and expiry timestamps. Expired entries are deleted on read. Cache failure never
+hides a valid server response or blocks deterministic insight.
+
 ## Recovery Flow
 
 ```text
@@ -137,6 +149,7 @@ If database bootstrap itself fails, the application reports a Flutter error and 
 - Analytics event + analytics outbox operation.
 - First account claim + session/analytics/outbox owner rewrite + binding insert.
 - Empty-device remote session/answer import + recovery metadata update.
+- AI Coach response upsert after a server-validated generation/cache response.
 - Mark analytics synced + update source event status.
 - Prune an old synced analytics outbox operation + its synced source event.
 
@@ -145,7 +158,7 @@ If database bootstrap itself fails, the application reports a Flutter error and 
 The integration suite uses temporary SQLite files and verifies:
 
 - schema creation and question-pack persistence;
-- migration from schema v1 through v2, v3, v4, v5, v6, and v7;
+- migration from schema v1 through v2, v3, v4, v5, v6, v7, and v8;
 - direct v4→v5 migration with acknowledgement backfill;
 - generated-pack metadata import, activation, and idempotent reload;
 - immutable draft→validated→published lifecycle persistence and tamper refusal;
@@ -163,6 +176,8 @@ The integration suite uses temporary SQLite files and verifies:
   delivery, and synced-retention cleanup.
 - atomic local account claim, conflicting-account refusal, empty-device remote
   import, local score recomputation, and local-data preservation.
+- AI Coach cache round-trip, owner scoping, expiry deletion, and completed
+  session linkage.
 
 ## Deferred
 

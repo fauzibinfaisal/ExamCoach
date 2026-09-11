@@ -56,7 +56,7 @@
   "userId": "user_id",
   "sessionId": "session_id",
   "timestamp": "ISO-8601",
-  "appVersion": "0.10.0",
+  "appVersion": "0.11.0",
   "platform": "ios",
   "properties": {
     "questionId": "q_123",
@@ -95,6 +95,24 @@ retry or diagnosis. See `Sync_Architecture.md`.
 | `drill_completed` | User explicitly finishes a reviewed drill | `sessionId`, `score`, `skippedCount` |
 | `result_viewed` | Deterministic result becomes available | `sessionId` |
 | `question_review_viewed` | Post-result answer review opens | `sessionId`, `mode`, `questionCount`, `skippedCount` |
+
+## Implemented AI and Monetization Events
+
+| Event | Trigger | Key properties |
+|---|---|---|
+| `ai_insight_requested` | Authenticated user starts a structured generation | `sessionId` |
+| `ai_insight_generated` | Valid server response is accepted | `sessionId`, `provider`, `model`, `serverCache` |
+| `ai_insight_viewed` | A generated or cached insight becomes visible | `sessionId`, `provider` |
+| `ai_quota_exhausted` | Server rejects generation because daily quota is consumed | `sessionId` |
+| `paywall_viewed` | Subscription page opens for the first time in its Cubit lifecycle | none |
+| `purchase_started` | User selects a live RevenueCat offering package | `packageId` |
+| `subscription_started` | Purchase completes and backend entitlement refresh returns | `packageId`, `planId` |
+| `restore_purchase` | User explicitly asks RevenueCat to restore transactions | none |
+
+Store product identifiers, prices, payment details, provider secrets, prompts,
+and AI response text are not analytics properties. Subscription lifecycle
+renewal/cancellation events remain deferred until a webhook and retention policy
+are owner-approved.
 
 Cancellation and expiry are terminal session outcomes, not completion events.
 Their partial answers must not affect weakness, recommendation, or improvement

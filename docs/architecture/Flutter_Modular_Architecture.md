@@ -56,6 +56,13 @@ presentation. `services/firebase` owns optional runtime initialization, while
 the same worker contract. Missing Firebase configuration must not cross into or
 disable the learning feature.
 
+The implemented `features/ai_coach` module owns canonical deterministic context
+construction, callable protocol parsing, Cubit states, local cache abstraction,
+and presentation. The implemented `features/subscription` module owns
+RevenueCat runtime validation, store offering mapping, purchase/restore
+orchestration, trusted entitlement refresh, analytics, and paywall presentation.
+Both modules fail closed without configuration and do not weaken local learning.
+
 ## Engineering Priority
 Build and test:
 Question → Answer → Score → Weakness → Recommendation → Drill → Updated Insight

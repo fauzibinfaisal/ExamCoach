@@ -10,6 +10,7 @@ import 'package:exam_coach/features/exam/data/question_pack_promotion_service.da
 import 'package:exam_coach/features/exam/data/question_review_codec.dart';
 import 'package:exam_coach/features/exam/domain/models/question_pack.dart';
 import 'package:exam_coach/features/exam/domain/models/question_pack_review.dart';
+import 'package:exam_coach/features/exam/domain/models/exam_session.dart';
 import 'package:exam_coach/features/learning/application/learning_flow_cubit.dart';
 import 'package:exam_coach/features/learning/application/learning_flow_state.dart';
 import 'package:exam_coach/features/learning/data/local_learning_persistence_repository.dart';
@@ -63,6 +64,7 @@ void main() {
         'analytics_events',
         'sync_outbox',
         'account_binding',
+        'ai_coach_insights',
       }),
     );
     expect(harness.questions.allQuestions, hasLength(12));
@@ -76,7 +78,7 @@ void main() {
   });
 
   test(
-    'migrates content, skipped answers, sync, review, and account data from v1 to v7',
+    'migrates content, skipped answers, sync, review, account, and AI cache data from v1 to v8',
     () async {
       final databasePath = _databasePath(temporaryDirectory);
       final legacyDatabase = await databaseFactoryFfi.openDatabase(
@@ -138,6 +140,7 @@ void main() {
       expect(tableNames, contains('analytics_events'));
       expect(tableNames, contains('sync_outbox'));
       expect(tableNames, contains('account_binding'));
+      expect(tableNames, contains('ai_coach_insights'));
       final packColumns = await opened.rawQuery(
         'PRAGMA table_info(question_packs)',
       );
@@ -540,6 +543,10 @@ void main() {
       expect(cubit.state.latestScore, isNotNull);
       expect(cubit.state.profiles, hasLength(3));
       expect(cubit.state.recommendation, isNotNull);
+      expect(
+        cubit.state.latestCompletedSession?.status,
+        ExamSessionStatus.completed,
+      );
       expect(await harness.persistence.getPending(), hasLength(7));
     },
   );

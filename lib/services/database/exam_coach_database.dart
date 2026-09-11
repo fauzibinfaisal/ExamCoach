@@ -5,7 +5,7 @@ class ExamCoachDatabase {
   ExamCoachDatabase({required this.databasePath, DatabaseFactory? factory})
     : _factory = factory ?? databaseFactory;
 
-  static const schemaVersion = 7;
+  static const schemaVersion = 8;
   static const fileName = 'exam_coach.sqlite';
 
   final String databasePath;
@@ -190,6 +190,7 @@ class ExamCoachDatabase {
         ON recommendations(generated_at DESC)
       ''');
       await _createAccountBindingSchema(transaction);
+      await _createAiCoachSchema(transaction);
       await _createSyncSchema(transaction);
     });
   }
@@ -229,6 +230,10 @@ class ExamCoachDatabase {
     if (migratedVersion < 7 && newVersion >= 7) {
       await database.transaction(_createAccountBindingSchema);
       migratedVersion = 7;
+    }
+    if (migratedVersion < 8 && newVersion >= 8) {
+      await database.transaction(_createAiCoachSchema);
+      migratedVersion = 8;
     }
     if (migratedVersion != newVersion) {
       throw StateError(
@@ -402,6 +407,28 @@ class ExamCoachDatabase {
         last_recovered_at TEXT,
         remote_revision INTEGER NOT NULL DEFAULT 0
       )
+    ''');
+  }
+
+  static Future<void> _createAiCoachSchema(DatabaseExecutor executor) async {
+    await executor.execute('''
+      CREATE TABLE IF NOT EXISTS ai_coach_insights (
+        context_key TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        source_session_id TEXT NOT NULL,
+        prompt_version TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        model TEXT NOT NULL,
+        response_json TEXT NOT NULL,
+        generated_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        FOREIGN KEY (source_session_id)
+          REFERENCES exam_sessions(id) ON DELETE CASCADE
+      )
+    ''');
+    await executor.execute('''
+      CREATE INDEX IF NOT EXISTS ai_coach_user_generated_idx
+      ON ai_coach_insights(user_id, generated_at DESC)
     ''');
   }
 }

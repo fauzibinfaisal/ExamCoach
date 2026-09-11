@@ -1,5 +1,84 @@
 # Decision Log
 
+## DEC-011 — AI Explanation Boundary and Backend-Verified Entitlements
+
+Date: 2026-09-11
+
+Status:
+- Accepted
+
+Context:
+
+Step 11 needs useful AI coaching and subscription-based capability without
+letting nondeterministic text change learning results, letting duplicate calls
+waste cost, embedding provider secrets, hard-coding prices, or trusting a
+client-side purchase/plan claim. Production model, quotas, products, prices,
+entitlement IDs, and credentials are not yet owner-approved.
+
+Decision:
+
+Build a canonical, SHA-256-bound context only from completed deterministic
+learning output. Require authenticated Functions to revalidate it, resolve a
+server-owned policy and RevenueCat-materialized entitlement, atomically reserve
+daily quota, reuse an unexpired same-context cache without charging again, and
+validate strict provider JSON before persistence. OpenAI and RevenueCat REST
+use separate Function secrets. Flutter uses only RevenueCat platform public
+keys, obtains offering prices from the store, and must call backend entitlement
+refresh after load/purchase/restore. Missing policy/configuration fails closed;
+deterministic insight remains available.
+
+Reason:
+
+- Canonical context prevents the provider or client from changing the factual
+  basis of an explanation.
+- Integer/basis-point values and millisecond UTC make Dart/JavaScript hashing
+  reproducible.
+- Server quota reservation and cache control bound cost under retries and
+  concurrency.
+- Strict structured output is displayable and testable without becoming an
+  open-ended chatbot.
+- Backend RevenueCat lookup prevents local purchase state from granting plan
+  authority.
+- Store offerings keep price/product changes configurable and localized.
+- Disabled templates allow repository completion without fabricating business
+  decisions or secrets.
+
+Alternatives Considered:
+
+- Let AI calculate score/weakness/recommendation: rejected because those outputs
+  must be deterministic and auditable.
+- Put the OpenAI key in Flutter: rejected because a mobile binary cannot protect
+  a provider secret or enforce global quota.
+- Trust RevenueCat `CustomerInfo` from the client for quota: rejected because
+  premium server cost needs backend-verifiable entitlement.
+- Charge before every provider/cache response: rejected because identical,
+  valid server cache hits should not consume another unit.
+- Hard-code products/prices/quotas to finish UI: rejected because these are
+  owner/product/store decisions and prices must remain configurable.
+- Require AI/Firebase/RevenueCat for app startup: rejected because offline
+  deterministic learning is the core guarantee.
+
+Impact:
+
+- Application version advances to `0.11.0+11`; SQLite schema v8 adds expiring
+  AI response cache.
+- Three authenticated callables own AI status, generation, and subscription
+  entitlement refresh.
+- Firestore adds policy, entitlement, AI usage/request/insight records under the
+  existing deny-client-write rules.
+- RevenueCat purchase/restore and OpenAI generation cannot be production-tested
+  until the owner completes the activation checklist.
+- Proactive RevenueCat webhooks, App Check, observability, and release/legal
+  polish remain Step 12/owner work.
+
+Related Documents:
+
+- `docs/engineering/AI_Coach_and_Subscriptions.md`
+- `docs/architecture/AI_System_Architecture.md`
+- `docs/architecture/Backend_Service_Architecture.md`
+- `docs/engineering/Local_Persistence_Design.md`
+- `docs/engineering/Analytics_Event_Map.md`
+
 ## DEC-010 — Single-Owner Local Binding and Empty-Device Firebase Recovery
 
 Date: 2026-09-08

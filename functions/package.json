@@ -6,8 +6,8 @@
     "node": "22"
   },
   "scripts": {
-    "test": "node --test test/sync_core.test.js",
-    "test:callable": "node --test test/callable_emulator.test.js",
+    "test": "node --test test/sync_core.test.js test/ai_coach_core.test.js test/openai_ai_provider.test.js test/revenuecat_entitlement.test.js",
+    "test:callable": "node --test test/callable_emulator.test.js test/ai_coach_callable_emulator.test.js",
     "test:rules": "node --test test/firestore_rules.test.js"
   },
   "dependencies": {

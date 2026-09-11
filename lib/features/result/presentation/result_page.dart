@@ -106,6 +106,13 @@ class ResultPage extends StatelessWidget {
                           : 'Mulai drill rekomendasi',
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    key: const Key('open-ai-coach-button'),
+                    onPressed: () => context.push('/ai-coach'),
+                    icon: const Icon(Icons.auto_awesome_outlined),
+                    label: const Text('Buka AI Coach'),
+                  ),
                 ],
                 const SizedBox(height: 12),
                 OutlinedButton(

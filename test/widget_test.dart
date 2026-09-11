@@ -1,11 +1,19 @@
 import 'package:exam_coach/app/app.dart';
+import 'package:exam_coach/analytics/analytics_events.dart';
+import 'package:exam_coach/features/ai_coach/application/ai_coach_context_builder.dart';
+import 'package:exam_coach/features/ai_coach/application/ai_coach_cubit.dart';
+import 'package:exam_coach/features/ai_coach/domain/ai_coach_cache_store.dart';
+import 'package:exam_coach/features/ai_coach/domain/ai_coach_repository.dart';
 import 'package:exam_coach/features/auth/application/auth_cubit.dart';
+import 'package:exam_coach/features/auth/domain/user_identity.dart';
 import 'package:exam_coach/features/exam/data/mock_question_repository.dart';
 import 'package:exam_coach/features/learning/application/learning_flow_cubit.dart';
 import 'package:exam_coach/learning_engine/adaptive_drill_engine.dart';
 import 'package:exam_coach/learning_engine/recommendation_engine.dart';
 import 'package:exam_coach/learning_engine/scoring_engine.dart';
 import 'package:exam_coach/learning_engine/weakness_analyzer.dart';
+import 'package:exam_coach/features/subscription/application/subscription_cubit.dart';
+import 'package:exam_coach/features/subscription/domain/subscription_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -13,8 +21,9 @@ void main() {
   testWidgets('opens account recovery while Firebase is safely disabled', (
     tester,
   ) async {
+    final questions = MockQuestionRepository();
     final cubit = LearningFlowCubit(
-      questionRepository: MockQuestionRepository(),
+      questionRepository: questions,
       scoringEngine: const ScoringEngine(),
       weaknessAnalyzer: const WeaknessAnalyzer(),
       recommendationEngine: const RecommendationEngine(),
@@ -24,6 +33,8 @@ void main() {
       ExamCoachApp(
         learningFlowCubit: cubit,
         authCubit: AuthCubit.unavailable('Test mode'),
+        aiCoachCubit: _testAiCoachCubit(questions),
+        subscriptionCubit: _testSubscriptionCubit(),
       ),
     );
 
@@ -34,13 +45,21 @@ void main() {
     expect(find.text('Akun & sinkronisasi'), findsOneWidget);
     expect(find.text('Firebase belum aktif'), findsOneWidget);
     expect(find.text('Test mode'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('subscription-card')));
+    await tester.pumpAndSettle();
+    expect(find.text('Paket ExamCoach'), findsOneWidget);
+    expect(find.text('Subscriptions disabled for tests'), findsOneWidget);
   });
 
   testWidgets('requires confirmation before cancelling a new tryout', (
     tester,
   ) async {
+    final questions = MockQuestionRepository();
     final cubit = LearningFlowCubit(
-      questionRepository: MockQuestionRepository(),
+      questionRepository: questions,
       scoringEngine: const ScoringEngine(),
       weaknessAnalyzer: const WeaknessAnalyzer(),
       recommendationEngine: const RecommendationEngine(),
@@ -50,6 +69,8 @@ void main() {
       ExamCoachApp(
         learningFlowCubit: cubit,
         authCubit: AuthCubit.unavailable('Test mode'),
+        aiCoachCubit: _testAiCoachCubit(questions),
+        subscriptionCubit: _testSubscriptionCubit(),
       ),
     );
 
@@ -62,13 +83,18 @@ void main() {
     await tester.tap(find.byKey(const Key('confirm-cancel-session-button')));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('start-tryout-button')),
+      300,
+    );
     expect(find.byKey(const Key('start-tryout-button')), findsOneWidget);
     expect(cubit.state.hasActiveSession, isFalse);
   });
 
   testWidgets('completes tryout, drill, and updated insight', (tester) async {
+    final questions = MockQuestionRepository();
     final cubit = LearningFlowCubit(
-      questionRepository: MockQuestionRepository(),
+      questionRepository: questions,
       scoringEngine: const ScoringEngine(),
       weaknessAnalyzer: const WeaknessAnalyzer(),
       recommendationEngine: const RecommendationEngine(),
@@ -78,6 +104,8 @@ void main() {
       ExamCoachApp(
         learningFlowCubit: cubit,
         authCubit: AuthCubit.unavailable('Test mode'),
+        aiCoachCubit: _testAiCoachCubit(questions),
+        subscriptionCubit: _testSubscriptionCubit(),
       ),
     );
 
@@ -158,9 +186,26 @@ void main() {
   });
 }
 
+AiCoachCubit _testAiCoachCubit(MockQuestionRepository questions) =>
+    AiCoachCubit(
+      contextBuilder: AiCoachContextBuilder(questions),
+      repository: const UnavailableAiCoachRepository('Test mode'),
+      cacheStore: MemoryAiCoachCacheStore(),
+      userIdentity: UserIdentity(),
+      analytics: InMemoryAnalytics(),
+    );
+
+SubscriptionCubit _testSubscriptionCubit() => SubscriptionCubit(
+  repository: const UnavailableSubscriptionRepository(
+    'Subscriptions disabled for tests',
+  ),
+  userIdentity: UserIdentity(),
+  analytics: InMemoryAnalytics(),
+);
+
 Future<void> _tapStartTryout(WidgetTester tester) async {
   final button = find.byKey(const Key('start-tryout-button'));
-  await tester.ensureVisible(button);
+  await tester.scrollUntilVisible(button, 300);
   await tester.pumpAndSettle();
   await tester.tap(button);
   await tester.pumpAndSettle();

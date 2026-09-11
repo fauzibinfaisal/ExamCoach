@@ -2,38 +2,37 @@
 
 ## Current Phase
 
-Step 10 repository implementation is complete: Firebase authentication,
-server-enforced remote ownership, idempotent outbox delivery, and safe
-empty-device recovery are implemented and locally/emulator tested. The next
-product milestone is Step 11 structured AI Coach, quota, entitlements, and
-subscriptions.
+Step 11 repository implementation is complete. ExamCoach now has structured AI
+Coach output, server-owned quota and cache, RevenueCat offering/purchase/restore,
+and trusted backend entitlement refresh while preserving the deterministic,
+offline-first learning loop. The next milestone is Step 12 product analytics,
+accessibility, performance, CI, observability, and release readiness.
 
-A real Firebase development project has not been created, configured, or
-deployed by this work. Until the owner supplies runtime values, the application
-intentionally runs in local-only mode.
+Real Firebase/OpenAI/RevenueCat/store environments have not been created,
+configured, or deployed by this work. Until the owner supplies the documented
+values and decisions, Firebase remains optional, AI/subscriptions fail closed,
+and local learning continues normally.
 
 ## Overall Progress
 
-The deterministic offline loop remains the product source of truth:
-
 ```text
-Home → Tryout overview → Answer or skip → Local commit → Pre-submit review
-→ Edit or explicitly finish → Score → Answer/explanation review
-→ Weakness analysis → Recommendation → Adaptive drill
-→ Updated insight → Persisted history → Optional authenticated sync/recovery
+Home → Tryout → Review → Deterministic score/weakness/recommendation
+→ Adaptive drill → Updated insight → Persisted history
+→ Optional authenticated sync/recovery
+→ Optional structured AI explanation
+→ Optional store purchase → backend-verified entitlement → plan quota
 ```
 
 SQLite stores content, sessions, answers, insight, analytics, delivery state,
-and a permanent account binding. Firebase is an optional remote transport. All
-remote writes pass through authenticated callable Functions; Firestore Rules
-deny direct client writes. A clean second device may recover owned sessions and
-answers, then recomputes correctness, score, weakness, and recommendation from
-the installed deterministic local content.
+permanent account binding, and expiring AI cache. Firebase clients can read only
+their own user tree and cannot write it directly. Functions own remote learning
+mutation, quota, AI requests, and entitlement materialization.
 
-Question generation remains provider-neutral and file-based. AI output enters
-only as a draft; similarity checks and machine validation cannot replace named,
-SHA-256-bound human review and explicit publication. No repository question pack
-has been human-approved or published.
+Question generation remains provider-neutral and file-based. AI-generated
+questions are drafts until named, digest-bound human review and explicit
+publication. AI Coach is separate: it explains deterministic learning facts and
+cannot score, decide correctness/weakness/recommendation, select questions, or
+guarantee passing.
 
 ## 12-Step Delivery Roadmap
 
@@ -49,116 +48,118 @@ has been human-approved or published.
 | 8 | Connectivity-aware sync worker, retry, acknowledgement, and conflict policy | Complete |
 | 9 | Human content review, similarity checks, and immutable publication | Complete |
 | 10 | Firebase authentication, remote data, and cross-device recovery | Complete |
-| 11 | Structured AI Coach, quota, entitlements, and subscriptions | Next |
-| 12 | Product analytics, accessibility, performance, CI, and release readiness | Planned |
+| 11 | Structured AI Coach, quota, entitlements, and subscriptions | Complete |
+| 12 | Product analytics, accessibility, performance, CI, and release readiness | Next |
 
-Current position: **Step 10 of 12 complete (83%)**. Current development version
-is `0.10.0+10`; SQLite schema is v7. Step 10 was integrated into `develop`
-through [PR #10](https://github.com/fauzibinfaisal/ExamCoach/pull/10);
-`main` remains unchanged until owner testing and release approval.
+Current position: **Step 11 of 12 complete (92%)**. Current development version
+is `0.11.0+11`; SQLite schema is v8. Work is on
+`feature/structured-ai-coach` for protected integration into `develop`.
+`main` remains release-only and unchanged.
 
-## Step 10 Delivered
+## Step 11 Delivered
 
-- Optional Firebase runtime configured only by explicit Dart defines, with a
-  safe local-only fallback.
-- Email/password registration, sign-in, password reset, sign-out, Account page,
-  and Home sync status.
-- Atomic first-account claim of legacy local sessions, analytics, and outbox
-  owner fields; conflicting accounts are refused and sign-out preserves data.
-- Authenticated callable upload and recovery gateways with timeout/error mapping.
-- Node 22 Functions that enforce UID ownership, deterministic operation IDs,
-  canonical payload hashes, immutable session meaning, complete-answer
-  terminal state, and monotonically increasing per-user revisions.
-- Firestore owner-read isolation, denied direct user-learning writes, and public
-  access only to explicitly published content paths.
-- Empty-device recovery bounded to 200 sessions, 500 answers per session, and
-  5,000 answers total, with content, option, timestamp, lifecycle, and ownership
-  validation plus local result recomputation.
-- SQLite v7 `account_binding`, Firebase emulator setup, reproducible Functions
-  lockfile, patched transitive dependency override, and development config
-  template.
-- Version `0.10.0+10`, Android debug artifact, and unsigned iOS smoke build.
+- Canonical version-1 learning context with recursive sorted JSON, SHA-256 key,
+  integer/basis-point metrics, millisecond UTC normalization, and server
+  revalidation before quota/provider work.
+- AI Coach Cubit/page reachable from Result and Home, including deterministic
+  fallback, no-result, signed-out, loading, ready, cached, quota-exhausted,
+  disabled, and failure states.
+- Authenticated status/generation callables with configurable Free/Premium plan
+  policy, UTC-day quota, atomic reservation/release, duplicate-in-flight guard,
+  expiry, and capability-aware same-context server cache hits. Upgrading from a
+  Free result to a study-plan-enabled tier forces regeneration before the paid
+  capability is shown.
+- OpenAI Responses API adapter with server-only JSON secret, strict JSON Schema,
+  compact instructions, output ceiling, `store: false`, hashed safety ID,
+  prompt cache key, and server output/guarantee validation.
+- SQLite schema v8 `ai_coach_insights` cache tied to the completed source
+  session; expired cache is deleted and cache/analytics failure cannot block
+  valid coaching or deterministic learning.
+- RevenueCat Flutter integration for current offering, localized store prices,
+  purchase, restore, authenticated Firebase UID identity, and safe disabled
+  configuration.
+- Backend RevenueCat customer lookup and mapping of active entitlements to
+  policy plan IDs. Only backend materialization controls AI plan/quota; client
+  purchase state is not authority.
+- Android Billing permission, ignored local-secret/runtime templates, Free-safe
+  policy template, analytics events, architecture/setup/acceptance guide, and
+  pre-1.0 version `0.11.0+11`.
 
-Full implementation and validation evidence is in `IMPLEMENTATION_LOG.md`.
-Activation and two-device testing are in
+Full setup, protocol, and manual acceptance instructions are in
+`engineering/AI_Coach_and_Subscriptions.md`. Step 10 Firebase setup remains in
 `engineering/Firebase_Integration.md`.
 
 ## Validation Snapshot
 
 - Dart formatting: pass.
 - Flutter analyzer: pass, no issues.
-- Flutter test suite: pass, 53 tests.
-- Backend core: pass, 10 tests.
-- Auth/Firestore/Functions callable emulator: pass.
-- Firestore Rules emulator: pass.
+- Flutter test suite: pass, 59 tests.
+- Backend core/provider: pass, 17 tests.
+- Auth/Firestore/Functions callable emulator: pass, 2 end-to-end suites,
+  including AI cache/quota and RevenueCat entitlement materialization.
+- Firestore Rules emulator: pass, including owned AI read, cross-user denial,
+  direct AI write denial, and private policy denial.
 - Production npm audit: pass, zero vulnerabilities.
-- Android debug build: pass; version `0.10.0`, build `10`, minSdk 24.
-- Unsigned iOS smoke build: pass; version `0.10.0`, build `10`, iOS 15.
-- iOS device/signing test: skipped by owner direction.
-- Real Firebase deployment/two-device test: waiting for owner development
-  project and runtime configuration.
+- Android debug build: pass; version `0.11.0`, build `11`, minSdk 24,
+  169,220,184 bytes.
+- Android APK SHA-256:
+  `1b464d139c259ae63d221190df5b5849f543f2baef0dd45d3854c04f2f442e64`.
+- iOS build/device/signing test: skipped by owner direction.
+- Real Firebase/OpenAI/RevenueCat/store test: requires owner configuration.
 
 ## Next Steps
 
-1. Owner: create a Firebase development project, enable Email/Password Auth,
-   register the provisional app IDs, deploy Functions/Rules, and run the manual
-   acceptance plan in `engineering/Firebase_Integration.md`.
-2. Design Step 11 AI Coach request/response schemas with structured,
-   evidence-linked output; deterministic results remain authoritative.
-3. Add trusted server quota, entitlement, subscription validation, and AI
-   provider-secret boundaries before enabling runtime AI.
-4. Add user-visible AI failure/quota states and tests for cached/offline insight.
-5. Have a real human review and publish production question content.
-6. In Step 12, add CI-required checks, accessibility/performance validation,
-   App Check/observability, release IDs/signing, and store readiness.
+1. Owner: follow `engineering/AI_Coach_and_Subscriptions.md` to choose quotas,
+   OpenAI model, RevenueCat products/entitlements/prices, create secrets, and
+   run the Android test-purchase acceptance plan.
+2. Owner: complete the Firebase development-project setup and two-device
+   recovery test in `engineering/Firebase_Integration.md` if not already done.
+3. Have a real human review and publish production question content.
+4. Step 12: add CI-required checks, accessibility semantics and device checks,
+   performance budgets, Crashlytics/structured observability, App Check,
+   analytics dashboards, and release identifiers/signing/store readiness.
+5. Decide whether the selected RevenueCat plan and operations warrant a signed
+   webhook for proactive renewals/cancellations; current backend refresh plus
+   stored expiry fails closed safely.
 
-## Owner/External Blockers
+## Owner/External Actions Required
 
-- Production Firebase behavior cannot be accepted until the owner selects and
-  configures a development project; no project ID or credential was invented.
-- Production content cannot ship until a named human completes the review and
-  publication workflow.
-- Android/iOS release identifiers, signing, privacy/retention/deletion policy,
-  and store configuration require owner decisions.
-- Subscription products, tiers, prices, and entitlement policy require product
-  decisions before Step 11 can be production-enabled.
+- Select/configure a Firebase development project and deployment credentials.
+- Select an OpenAI model/API key and approve per-plan daily quotas/cache TTL.
+- Create RevenueCat/store products, offering, entitlement IDs, localized
+  pricing, public Android SDK key, and server secret key.
+- Execute real Android license-tester/Test Store purchase and refund/expiry
+  scenarios. iOS stays deferred per owner direction.
+- Approve production content, privacy/retention/deletion/refund/support policy,
+  identifiers, signing, and store metadata.
 
 ## Known Limitations
 
-- Recovery handles an empty local session store; it is not a general merge of
-  two non-empty devices.
-- A transient recovery-download failure is retried on the next app launch or
-  authentication-state event; a dedicated manual re-pull action is not yet
-  available.
-- The database remains bound to its first account. Explicit export/reset and
-  safe account switching are not implemented.
-- Sync runs at startup and connectivity changes; OS-scheduled background work
-  is not implemented.
-- Dead letters are durable but have no operator inspection/re-drive UI.
-- App Check, email-verification policy, provider sign-in, backup/restore,
-  account deletion, remote retention, and production observability are pending.
-- Firebase callable emulator ran on host Node 26 while deployed Functions are
-  pinned to Node 22; exact-runtime CI remains Step 12 work.
-- Flutter reports a future Kotlin built-in migration warning from current
-  Firebase plugins; builds currently pass and package upgrades must be watched.
-- Prototype and AI-generated questions remain development-only drafts.
-- The 24-hour inactivity expiry and 0.82 similarity threshold remain provisional
-  policies requiring production calibration.
+- Recovery supports an empty local session store, not general multi-writer
+  merge; one local database remains permanently bound to its first account.
+- Sync is startup/reconnect-driven; OS background scheduling and dead-letter
+  operator UI are pending.
+- Subscription renewal/cancellation is refreshed on paywall load,
+  purchase/restore, and bounded by stored expiry. A proactive RevenueCat webhook
+  is not yet operational.
+- App Check, email verification policy, account deletion, remote retention,
+  production observability, accessibility/performance gates, legal links, and
+  release signing remain Step 12/owner work.
+- Emulator Functions use host Node 26 while deployment is pinned to Node 22;
+  exact-runtime CI is pending.
+- Firebase plugins still emit Flutter's future built-in Kotlin migration
+  warning; the Android build currently passes.
+- Prototype and generated questions remain development-only drafts.
 
 ## Governing Decisions
 
-- Deterministic Dart scoring, weakness, recommendation, and drill selection are
-  authoritative; remote services and AI cannot overwrite them.
-- SQLite writes and outbox operations share transaction boundaries.
-- Stable operation IDs, payload hashes, per-user revisions, and explicit remote
-  outcomes make uncertain retries auditable and idempotent.
-- One local database binds to one Firebase UID; sign-out does not delete or
-  relabel data.
-- Remote mutation uses authenticated callable Functions; direct client writes
-  to user learning documents are denied.
-- Existing local sessions win over inbound recovery. Clean-device recovery is
-  validated against installed content and recomputed locally.
+- Deterministic Dart learning output is authoritative; AI is explanation only.
+- Quota, entitlement, AI provider, and AI cache are server-owned and
+  authenticated; provider/RevenueCat secrets never enter Flutter.
+- Store offering data supplies all product text/price; prices are not hard-coded.
+- SQLite writes/outbox share transaction boundaries; cache failure cannot block
+  learning or hide an already charged valid response.
 - `main` is release-only, `develop` is integration, and normal work uses
   `feature/*`/`bugfix/*` pull requests.
-- Pre-1.0 builds use `0.MINOR.PATCH+BUILD`; database schema versions are
-  independent.
+- Pre-1.0 builds use `0.MINOR.PATCH+BUILD`; database schemas are versioned
+  independently.

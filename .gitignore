@@ -41,6 +41,7 @@ firestore-debug.log*
 ui-debug.log*
 functions/.env
 functions/.env.local
+functions/.secret.local
 config/firebase.*.json
 !config/firebase.dart-defines.example.json
 

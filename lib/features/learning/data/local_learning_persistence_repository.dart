@@ -56,8 +56,10 @@ class LocalLearningPersistenceRepository
       orderBy: 'ended_at DESC',
       limit: 1,
     );
+    ExamSession? latestCompletedSession;
     ScoreResult? latestScore;
     if (completedRows.isNotEmpty) {
+      latestCompletedSession = _sessionFromRow(completedRows.first);
       final sessionId = completedRows.first['id']! as String;
       final rows = await database.query(
         'user_answers',
@@ -82,6 +84,7 @@ class LocalLearningPersistenceRepository
 
     return LearningPersistenceSnapshot(
       activeSession: activeSession,
+      latestCompletedSession: latestCompletedSession,
       activeAnswers: List.unmodifiable(activeAnswers),
       answerHistory: answerHistory,
       latestScore: latestScore,

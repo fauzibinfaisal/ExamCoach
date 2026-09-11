@@ -34,6 +34,14 @@ and queued work remains pending. See `../engineering/Firebase_Integration.md`
 for owner activation and `../engineering/Sync_Architecture.md` for protocol and
 recovery semantics.
 
+Step 11 adds authenticated `getAiCoachStatus`, `requestAiCoachInsight`, and
+`refreshSubscriptionEntitlement` callables. AI policy, daily usage,
+same-context request reservation/cache, and RevenueCat-verified entitlement are
+server-owned. AI uses a secret-bound OpenAI adapter; subscription verification
+uses a separate secret-bound RevenueCat REST adapter. The client cannot submit
+its plan or mutate quota/entitlement documents. See
+`../engineering/AI_Coach_and_Subscriptions.md` for activation and protocols.
+
 ## Services
 - auth
 - content
@@ -50,9 +58,9 @@ recovery semantics.
 Use for trusted operations:
 - authenticated outbox batch application;
 - owned recovery snapshot reads;
-- AI requests
-- entitlement validation
-- server quota
+- structured AI requests and response validation;
+- RevenueCat entitlement refresh;
+- atomic server quota and cache reservation;
 - leaderboard aggregation
 - analytics processing
 - scheduled jobs
@@ -67,6 +75,11 @@ explicit outcome per operation. Firestore Rules deny all direct user-learning
 writes and isolate reads to the owner. Admin SDK writes are restricted to the
 Functions runtime/IAM boundary. Connectivity is only a trigger; request timeouts
 and failures remain safe to retry.
+
+Every AI/subscription request also derives identity from Auth. Provider and
+RevenueCat server keys are JSON secret parameters bound only to their required
+Functions. Public RevenueCat SDK keys are platform-specific app configuration
+and never grant server entitlement authority.
 
 ## Leaderboard
 Prefer precomputed snapshots over expensive global realtime queries.
