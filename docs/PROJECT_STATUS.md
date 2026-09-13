@@ -53,8 +53,10 @@ guarantee passing.
 
 Current position: **Step 12 of 12 complete (100% repository roadmap)**. Current
 development version is `0.12.0+12`; SQLite schema remains v8. Work is on
-`feature/step-12-release-readiness` for protected pull-request integration into
-`develop`. `main` remains release-only and unchanged.
+`feature/step-12-release-readiness` and is tracked for integration into
+`develop` by [PR #13](https://github.com/fauzibinfaisal/ExamCoach/pull/13).
+Hosted CI is the required integration gate; `main` remains release-only and
+unchanged.
 
 ## Step 12 Delivered
 
@@ -102,19 +104,18 @@ in `engineering/Firebase_Integration.md` and
   minSdk 24, 169,726,077 bytes of the 199,229,440-byte budget.
 - Android APK SHA-256:
   `68318dad45ae148b75972ef72bc59a52b77263fc26e57921f3bfb550d76130d2`.
-- GitHub Actions workflow syntax: pass locally; actual hosted checks run after
-  the Step 12 branch is pushed.
+- GitHub Actions workflow syntax: pass locally; hosted checks are tracked by
+  [PR #13](https://github.com/fauzibinfaisal/ExamCoach/pull/13).
 - iOS build/device/signing test: skipped by owner direction.
 - Real Firebase/OpenAI/RevenueCat/store test: requires owner configuration.
 
 ## Next Steps
 
-1. Integrate Step 12 into `develop` through its pull request after hosted CI.
-2. Owner: complete the unchecked items in
+1. Owner: complete the unchecked items in
    `engineering/Release_Readiness.md` in order; they require owner accounts,
    legal/product decisions, store authority, signing keys, or physical devices.
-3. Keep `main` unchanged until the owner signs off a separate release candidate.
-4. After acceptance, create `release/x.y.z`, select the first stable version,
+2. Keep `main` unchanged until the owner signs off a separate release candidate.
+3. After acceptance, create `release/x.y.z`, select the first stable version,
    merge to `main`, and tag the exact released commit.
 
 ## Owner/External Actions Required

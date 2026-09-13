@@ -56,8 +56,9 @@ and physical-device decisions under explicit owner control.
 ### Git Integration
 
 - Implemented on `feature/step-12-release-readiness` from `develop`.
-- Pull-request integration and hosted GitHub checks are pending; `main` remains
-  unchanged.
+- Integration into `develop` is tracked by
+  [PR #13](https://github.com/fauzibinfaisal/ExamCoach/pull/13) and gated by its
+  hosted GitHub checks; `main` remains unchanged.
 
 ### Result
 
