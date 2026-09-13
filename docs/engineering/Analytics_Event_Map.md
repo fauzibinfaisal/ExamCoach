@@ -56,7 +56,7 @@
   "userId": "user_id",
   "sessionId": "session_id",
   "timestamp": "ISO-8601",
-  "appVersion": "0.11.0",
+  "appVersion": "0.12.0",
   "platform": "ios",
   "properties": {
     "questionId": "q_123",
@@ -74,6 +74,8 @@
 - centralized event creation
 - offline queue
 - batch upload
+- allow-listed event/property contract on both client and server
+- scalar values only; strings are bounded to 240 characters
 
 Upload acknowledgement is transactional with the analytics source record.
 Accepted, duplicate, and superseded operations mark the source synced; only old
@@ -113,6 +115,11 @@ Store product identifiers, prices, payment details, provider secrets, prompts,
 and AI response text are not analytics properties. Subscription lifecycle
 renewal/cancellation events remain deferred until a webhook and retention policy
 are owner-approved.
+
+`AnalyticsEvents.validate` rejects unregistered events, unexpected properties,
+nested values, non-finite numbers, and oversized strings before local storage.
+Functions independently applies the same allow-list before accepting an outbox
+event. Tracking errors are isolated from learning, AI, and purchase behavior.
 
 Cancellation and expiry are terminal session outcomes, not completion events.
 Their partial answers must not affect weakness, recommendation, or improvement

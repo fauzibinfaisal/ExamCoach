@@ -41,7 +41,11 @@ class TryoutOverviewPage extends StatelessWidget {
                 icon: const Icon(Icons.close_rounded),
                 tooltip: 'Batalkan tryout',
               ),
-              title: const Text('Ringkasan tryout'),
+              title: const Text(
+                'Ringkasan tryout',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             body: SafeArea(
               top: false,
@@ -87,11 +91,16 @@ class TryoutOverviewPage extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.fromLTRB(24, 14, 24, 18),
                     color: Colors.white,
-                    child: FilledButton.icon(
-                      key: const Key('begin-session-button'),
-                      onPressed: () => context.go('/session'),
-                      icon: const Icon(Icons.arrow_forward_rounded),
-                      label: const Text('Mulai menjawab'),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        key: const Key('begin-session-button'),
+                        onPressed: () => context.go('/session'),
+                        child: const Text(
+                          'Mulai menjawab',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     ),
                   ),
                 ],

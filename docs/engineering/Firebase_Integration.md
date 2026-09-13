@@ -84,6 +84,12 @@ If `EXAMCOACH_FIREBASE_ENABLED` is absent/false or any required value is empty,
 the Account screen explains that Firebase is unavailable and the app stays in
 local mode instead of starting a partially configured remote client.
 
+Step 12 adds optional App Check and Crashlytics flags to the same template.
+Leave them `false` until the staged owner checklist in `Release_Readiness.md`
+has been completed. Callable `EXAMCOACH_ENFORCE_APP_CHECK` also defaults to
+`false`; never enforce before valid development tokens and traffic have been
+confirmed.
+
 ## Emulator Setup
 
 Set `EXAMCOACH_FIREBASE_USE_EMULATORS` to `true` in a local copy of the template.
@@ -183,8 +189,10 @@ question pack.
   action yet.
 - Sync runs at app startup and connectivity changes; OS-scheduled background
   delivery and operator dead-letter re-drive remain future work.
-- App Check, provider sign-in, email verification policy, observability, backup
-  policy, and retention/deletion controls remain release-readiness work.
+- App Check activation/enforcement and Crashlytics wiring are implemented but
+  deliberately disabled until owner environment/privacy acceptance. Provider
+  sign-in, email verification policy, backup policy, and retention/deletion
+  controls remain owner decisions.
 - The current development machine uses Node 26, while deployed Functions are
   pinned to Node 22 via `functions/package.json` and `.nvmrc`.
 - `firebase-admin` currently brings older `uuid` transitively through its

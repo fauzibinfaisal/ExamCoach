@@ -18,17 +18,18 @@ This folder contains the core context documents for the ExamCoach project.
 12. engineering/Session_Controls_and_Review.md
 13. engineering/AI_Coach_and_Subscriptions.md
 14. engineering/Release_Versioning.md
-15. engineering/Git_Workflow.md
-16. engineering/Learning_Intelligence_Specification.md
-17. engineering/Analytics_Event_Map.md
-18. architecture/CMS_System_Architecture.md
-19. architecture/Flutter_Modular_Architecture.md
-20. architecture/Backend_Service_Architecture.md
-21. architecture/AI_System_Architecture.md
-22. architecture/Technical_Design_Document.md
-23. operations/Content_Operations_SOP.md
-24. operations/AI_Question_Bank_Workflow.md
-25. operations/Human_Question_Review_Workflow.md
+15. engineering/Release_Readiness.md
+16. engineering/Git_Workflow.md
+17. engineering/Learning_Intelligence_Specification.md
+18. engineering/Analytics_Event_Map.md
+19. architecture/CMS_System_Architecture.md
+20. architecture/Flutter_Modular_Architecture.md
+21. architecture/Backend_Service_Architecture.md
+22. architecture/AI_System_Architecture.md
+23. architecture/Technical_Design_Document.md
+24. operations/Content_Operations_SOP.md
+25. operations/AI_Question_Bank_Workflow.md
+26. operations/Human_Question_Review_Workflow.md
 
 ## Product Thesis
 > Optimize measurable learning improvement, not question volume.

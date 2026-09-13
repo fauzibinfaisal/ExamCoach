@@ -44,6 +44,8 @@ class QuestionPage extends StatelessWidget {
               ),
               title: Text(
                 modeLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
@@ -66,15 +68,24 @@ class QuestionPage extends StatelessWidget {
               top: false,
               child: Column(
                 children: [
-                  LinearProgressIndicator(value: progress, minHeight: 5),
+                  Semantics(
+                    label: 'Progres sesi',
+                    value:
+                        'Soal ${state.currentIndex + 1} dari ${state.questions.length}',
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 5,
+                    ),
+                  ),
                   Expanded(
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
                       children: [
-                        Row(
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
                           children: [
                             _Tag(label: question.taxonomy.topicLabel),
-                            const SizedBox(width: 8),
                             _Tag(
                               label: _difficultyLabel(question.difficulty),
                               subdued: true,
@@ -120,40 +131,56 @@ class QuestionPage extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                key: const Key('previous-question-button'),
-                                onPressed:
-                                    state.currentIndex == 0 || state.isSaving
-                                    ? null
-                                    : () => context
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final previousButton = OutlinedButton.icon(
+                              key: const Key('previous-question-button'),
+                              onPressed:
+                                  state.currentIndex == 0 || state.isSaving
+                                  ? null
+                                  : () => context
+                                        .read<LearningFlowCubit>()
+                                        .goToQuestion(state.currentIndex - 1),
+                              icon: const Icon(Icons.arrow_back_rounded),
+                              label: const Text('Sebelumnya'),
+                            );
+                            final skipButton = TextButton.icon(
+                              key: const Key('skip-question-button'),
+                              onPressed: state.isSaving
+                                  ? null
+                                  : () async {
+                                      final ready = await context
                                           .read<LearningFlowCubit>()
-                                          .goToQuestion(state.currentIndex - 1),
-                                icon: const Icon(Icons.arrow_back_rounded),
-                                label: const Text('Sebelumnya'),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: TextButton.icon(
-                                key: const Key('skip-question-button'),
-                                onPressed: state.isSaving
-                                    ? null
-                                    : () async {
-                                        final ready = await context
-                                            .read<LearningFlowCubit>()
-                                            .skipCurrentQuestion();
-                                        if (ready && context.mounted) {
-                                          context.go('/session-review');
-                                        }
-                                      },
-                                icon: const Icon(Icons.fast_forward_rounded),
-                                label: const Text('Lewati'),
-                              ),
-                            ),
-                          ],
+                                          .skipCurrentQuestion();
+                                      if (ready && context.mounted) {
+                                        context.go('/session-review');
+                                      }
+                                    },
+                              icon: const Icon(Icons.fast_forward_rounded),
+                              label: const Text('Lewati'),
+                            );
+                            final stacked =
+                                MediaQuery.textScalerOf(context).scale(1) >=
+                                    1.5 ||
+                                constraints.maxWidth < 300;
+                            if (stacked) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  previousButton,
+                                  const SizedBox(height: 8),
+                                  skipButton,
+                                ],
+                              );
+                            }
+                            return Row(
+                              children: [
+                                Expanded(child: previousButton),
+                                const SizedBox(width: 10),
+                                Expanded(child: skipButton),
+                              ],
+                            );
+                          },
                         ),
                         const SizedBox(height: 10),
                         SizedBox(
@@ -218,52 +245,56 @@ class _AnswerOption extends StatelessWidget {
     return Semantics(
       button: true,
       selected: isSelected,
-      child: InkWell(
-        key: Key('answer-${option.id}'),
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isSelected ? colors.secondaryContainer : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected ? colors.secondary : const Color(0xFFD9E2E8),
-              width: isSelected ? 2 : 1,
+      label: 'Pilihan ${option.id.toUpperCase()}: ${option.text}',
+      onTap: onTap,
+      child: ExcludeSemantics(
+        child: InkWell(
+          key: Key('answer-${option.id}'),
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isSelected ? colors.secondaryContainer : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected ? colors.secondary : const Color(0xFFD9E2E8),
+                width: isSelected ? 2 : 1,
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isSelected
-                      ? colors.secondary
-                      : const Color(0xFFF0F4F6),
-                ),
-                child: Text(
-                  option.id.toUpperCase(),
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : colors.primary,
-                    fontWeight: FontWeight.w800,
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected
+                        ? colors.secondary
+                        : const Color(0xFFF0F4F6),
+                  ),
+                  child: Text(
+                    option.id.toUpperCase(),
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : colors.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  option.text,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    option.text,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

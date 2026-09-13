@@ -10,7 +10,7 @@ Tryout overview → Answer or skip → Pre-submit review → Score
 
 SQLite stores downloaded prototype content, active sessions, answers/skips, learning history, recommendations, analytics, and an idempotent sync outbox. Interrupted question and pre-submit review states can be resumed after relaunch; cancelled or expired partial sessions do not affect learning insight.
 
-Current development version: `0.11.0+11`. Major version zero is intentional
+Current development version: `0.12.0+12`. Major version zero is intentional
 while the product is unreleased. The connectivity-aware engine now has an
 optional authenticated Firebase gateway, server validation, and empty-device
 cross-device recovery. With no Firebase runtime configuration, the app remains
@@ -22,6 +22,12 @@ learning engine remains the source of truth: AI is not part of scoring,
 correctness, weakness analysis, recommendation, or question selection. AI and
 subscriptions remain safely disabled until explicit owner configuration.
 
+Step 12 adds repeatable GitHub Actions quality gates, analytics privacy
+contracts, large-text/screen-reader regression checks, an APK size budget,
+staged Firebase App Check, and opt-in Crashlytics. Production release still
+requires the owner-only acceptance checklist in
+`docs/engineering/Release_Readiness.md`.
+
 ## Run
 
 ```bash
@@ -32,10 +38,12 @@ flutter run
 ## Validate
 
 ```bash
-dart format --output=none --set-exit-if-changed lib test
+dart format --output=none --set-exit-if-changed lib test tool
+dart run tool/check_release_metadata.dart
 flutter analyze
-flutter test
+flutter test --coverage
 flutter build apk --debug
+dart run tool/check_apk_budget.dart build/app/outputs/flutter-apk/app-debug.apk
 flutter build ios --debug --no-codesign
 npm --prefix functions test
 ```
@@ -115,6 +123,7 @@ Read these documents before changing implementation:
 - `docs/engineering/Sync_Architecture.md`
 - `docs/engineering/Firebase_Integration.md`
 - `docs/engineering/AI_Coach_and_Subscriptions.md`
+- `docs/engineering/Release_Readiness.md`
 - `docs/engineering/Release_Versioning.md`
 - `docs/operations/AI_Question_Bank_Workflow.md`
 - `docs/operations/Human_Question_Review_Workflow.md`

@@ -1,5 +1,76 @@
 # Implementation Log
 
+## 2026-09-13 — CI, Accessibility, Observability, and Release Readiness
+
+### Objective
+
+Complete Step 12 with repeatable release gates while preserving local-first
+learning and keeping production telemetry, attestation, signing, legal, store,
+and physical-device decisions under explicit owner control.
+
+### Implemented
+
+- Added `.github/workflows/ci.yml` for pre-1.0 metadata, formatting, analyzer,
+  Flutter coverage tests, Node 22 Functions tests/audit, Firestore Rules and
+  callable emulators, Android debug build, APK budget, and 14-day artifact.
+- Added client and server analytics contracts that allow-list every implemented
+  event/property, permit only bounded scalar values, and reject accidental
+  personal/unbounded data before remote persistence.
+- Added structured Functions telemetry for sync, recovery, AI, and entitlement
+  outcomes using a truncated SHA-256 subject hash. Raw UID, answers, prompts,
+  AI text, payment details, price, and secrets are excluded.
+- Added opt-in App Check activation with Play Integrity for Android and App
+  Attest/DeviceCheck fallback for Apple. Debug provider and callable enforcement
+  are independent, default-off controls for staged rollout.
+- Added opt-in Crashlytics collection and fatal Flutter/unhandled asynchronous
+  error handlers. Disabled configuration explicitly disables collection.
+- Added question-choice, progress, and score semantics plus a 320-pixel,
+  200%-text, 48-pixel-target regression test.
+- The new accessibility test exposed real horizontal overflows in taxonomy tags
+  and session controls; both now use responsive wrapping/stacking.
+- Added `tool/check_release_metadata.dart`, `tool/check_apk_budget.dart`, and
+  tested release-guard logic. Debug APK budget is 190 MiB.
+- Added a fully checked repository checklist and clearly separated unchecked
+  owner actions in `docs/engineering/Release_Readiness.md`.
+- Advanced the unreleased development version to `0.12.0+12`. SQLite remains v8.
+
+### Validation
+
+- Dart formatting — PASS.
+- Release metadata guard — PASS for `0.12.0+12`.
+- Flutter analyzer — PASS; no issues.
+- Flutter tests — PASS; 65 tests.
+- Functions tests — PASS; 19 tests.
+- Auth/Firestore/Functions callable emulator — PASS; 2 suites.
+- Firestore Rules emulator — PASS; 1 suite.
+- Production npm audit — PASS; zero vulnerabilities.
+- Android debug build — PASS; version `0.12.0`, build `12`, minSdk 24.
+- APK budget — PASS; 169,726,077 of 199,229,440 bytes (161.9 MiB of
+  190 MiB).
+- APK SHA-256 —
+  `68318dad45ae148b75972ef72bc59a52b77263fc26e57921f3bfb550d76130d2`.
+- iOS build/device/signing — skipped by owner direction.
+- Real services, App Check enforcement, Crashlytics delivery, store purchase,
+  signing, and physical-device performance remain owner acceptance items.
+
+### Git Integration
+
+- Implemented on `feature/step-12-release-readiness` from `develop`.
+- Integration into `develop` is tracked by
+  [PR #13](https://github.com/fauzibinfaisal/ExamCoach/pull/13) and gated by its
+  hosted GitHub checks; `main` remains unchanged.
+
+### Result
+
+PASS for the Step 12 repository implementation and local/emulator gates. All 12
+repository roadmap steps are implemented; this is not yet production `1.0.0`.
+
+### Owner Next Steps
+
+- Complete the unchecked checklist in
+  `docs/engineering/Release_Readiness.md` in order.
+- Only after acceptance, prepare a separate release branch for `main`.
+
 ## 2026-09-11 — Structured AI Coach, Server Quota, and Trusted Subscriptions
 
 ### Objective

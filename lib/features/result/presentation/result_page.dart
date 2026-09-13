@@ -164,10 +164,14 @@ class _ScoreCard extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  CircularProgressIndicator(
-                    value: score / 100,
-                    strokeWidth: 9,
-                    backgroundColor: const Color(0xFFE7EDF1),
+                  Semantics(
+                    label: 'Skor sesi',
+                    value: '$score dari 100',
+                    child: CircularProgressIndicator(
+                      value: score / 100,
+                      strokeWidth: 9,
+                      backgroundColor: const Color(0xFFE7EDF1),
+                    ),
                   ),
                   Text(
                     '$score',

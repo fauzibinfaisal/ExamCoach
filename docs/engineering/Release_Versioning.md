@@ -2,10 +2,10 @@
 
 ## Current Version
 
-The current development build is `0.11.0+11`.
+The current development build is `0.12.0+12`.
 
-- `0.11.0` is the public application version (`build-name`).
-- `11` is the monotonically increasing store/build number (`build-number`).
+- `0.12.0` is the public application version (`build-name`).
+- `12` is the monotonically increasing store/build number (`build-number`).
 - Major version zero communicates that ExamCoach is still in initial
   development and its public behavior may change before the first stable
   release.
@@ -33,6 +33,7 @@ Examples:
 | Step 9 corrective build | `0.9.1+10` |
 | Step 10 milestone build | `0.10.0+10` |
 | Step 11 milestone build | `0.11.0+11` |
+| Step 12 milestone build | `0.12.0+12` |
 | First production release | `1.0.0+N` |
 
 The three-part numeric version is kept platform-safe for Flutter, Android, and
@@ -63,6 +64,10 @@ Before tagging a release:
 5. Merge through the protected release flow only after owner testing and
    approval.
 6. Tag the exact released `main` commit; never move or reuse a release tag.
+
+The automated development metadata guard is
+`dart run tool/check_release_metadata.dart`. Release-owner actions and artifact
+budgets are in `Release_Readiness.md`.
 
 ## References
 

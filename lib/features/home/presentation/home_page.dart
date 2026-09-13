@@ -284,9 +284,11 @@ class _ResumeSessionCard extends StatelessWidget {
                   color: Theme.of(context).colorScheme.secondary,
                 ),
                 const SizedBox(width: 9),
-                Text(
-                  'Sesi tersimpan',
-                  style: Theme.of(context).textTheme.titleLarge,
+                Expanded(
+                  child: Text(
+                    'Sesi tersimpan',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                 ),
               ],
             ),
@@ -298,12 +300,17 @@ class _ResumeSessionCard extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 18),
-            FilledButton.icon(
-              key: const Key('resume-session-button'),
-              onPressed: () =>
-                  context.go(isReviewing ? '/session-review' : '/session'),
-              icon: const Icon(Icons.restore_rounded),
-              label: Text(isReviewing ? 'Periksa jawaban' : 'Lanjutkan sesi'),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                key: const Key('resume-session-button'),
+                onPressed: () =>
+                    context.go(isReviewing ? '/session-review' : '/session'),
+                child: Text(
+                  isReviewing ? 'Periksa jawaban' : 'Lanjutkan sesi',
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ),
           ],
         ),

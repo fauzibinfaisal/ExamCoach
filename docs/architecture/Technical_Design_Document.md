@@ -53,6 +53,11 @@ learning context, server policy/quota/cache, strict OpenAI output, a RevenueCat
 offering/purchase/restore client, and backend entitlement refresh. See
 `../engineering/AI_Coach_and_Subscriptions.md`.
 
+Step 12 adds CI-required formatting/analysis/tests/emulators, strict analytics
+dimensions, accessibility regression coverage, artifact budgets, structured
+privacy-bounded Functions logs, opt-in Crashlytics, and staged App Check. See
+`../engineering/Release_Readiness.md`.
+
 ## Versioning
 Version taxonomy, question content, scoring configuration, learning algorithms, analytics schemas, and AI prompts.
 
@@ -69,6 +74,12 @@ The mobile app receives only platform public RevenueCat SDK keys. Premium access
 is derived from a backend RevenueCat lookup and stored under the authenticated
 UID; client purchase state alone is never authoritative.
 
+App Check uses Play Integrity on Android and App Attest with DeviceCheck
+fallback on Apple. Client activation, debug-provider use, Crashlytics
+collection, and callable enforcement all default off until explicit owner
+configuration. App Check augments—not replaces—authentication, Rules, server
+authorization, quota, and entitlement validation.
+
 ## Testing
 Unit: learning engine.
 Bloc: state transitions.
@@ -77,6 +88,11 @@ E2E: onboarding → tryout → result → weakness → recommendation → drill 
 
 ## Observability
 Monitor crashes, sync failures, AI errors, quota failures, recommendation failures, analytics backlog, and subscription validation.
+
+Flutter fatal/framework and unhandled asynchronous errors can be routed to
+Crashlytics only after explicit runtime enablement. Functions emit bounded
+structured dimensions with a truncated UID hash and never include answer text,
+prompts, AI output, payment details, or credentials.
 
 ## Delivery Rule
 Get the end-to-end learning loop working and testable before optimizing architecture.

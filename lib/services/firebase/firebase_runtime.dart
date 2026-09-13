@@ -1,6 +1,9 @@
+import 'package:exam_coach/services/observability/observability_runtime.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 
 enum FirebaseRuntimeStatus { disabled, ready, invalidConfiguration, failed }
@@ -17,6 +20,9 @@ class FirebaseRuntimeConfig {
     required this.functionsRegion,
     required this.useEmulators,
     required this.emulatorHost,
+    this.appCheckEnabled = false,
+    this.appCheckDebugProvider = false,
+    this.crashlyticsEnabled = false,
   });
 
   factory FirebaseRuntimeConfig.fromEnvironment() =>
@@ -44,6 +50,13 @@ class FirebaseRuntimeConfig {
           'EXAMCOACH_FIREBASE_EMULATOR_HOST',
           defaultValue: '127.0.0.1',
         ),
+        appCheckEnabled: bool.fromEnvironment('EXAMCOACH_APP_CHECK_ENABLED'),
+        appCheckDebugProvider: bool.fromEnvironment(
+          'EXAMCOACH_APP_CHECK_DEBUG_PROVIDER',
+        ),
+        crashlyticsEnabled: bool.fromEnvironment(
+          'EXAMCOACH_CRASHLYTICS_ENABLED',
+        ),
       );
 
   final bool enabled;
@@ -56,6 +69,9 @@ class FirebaseRuntimeConfig {
   final String functionsRegion;
   final bool useEmulators;
   final String emulatorHost;
+  final bool appCheckEnabled;
+  final bool appCheckDebugProvider;
+  final bool crashlyticsEnabled;
 
   List<String> get missingFields {
     if (!enabled) {
@@ -145,6 +161,20 @@ class FirebaseRuntimeInitializer {
         await auth.useAuthEmulator(resolved.emulatorHost, 9099);
         functions.useFunctionsEmulator(resolved.emulatorHost, 5001);
       }
+      if (resolved.appCheckEnabled) {
+        await FirebaseAppCheck.instanceFor(app: app).activate(
+          providerAndroid: resolved.appCheckDebugProvider
+              ? const AndroidDebugProvider()
+              : const AndroidPlayIntegrityProvider(),
+          providerApple: resolved.appCheckDebugProvider
+              ? const AppleDebugProvider()
+              : const AppleAppAttestWithDeviceCheckFallbackProvider(),
+        );
+      }
+      await ObservabilityRuntime.configure(
+        crashlytics: FirebaseCrashlytics.instance,
+        enabled: resolved.crashlyticsEnabled,
+      );
       return FirebaseRuntimeResult(
         status: FirebaseRuntimeStatus.ready,
         message: resolved.useEmulators

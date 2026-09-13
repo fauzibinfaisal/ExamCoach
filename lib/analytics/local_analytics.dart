@@ -19,10 +19,11 @@ class LocalAnalytics implements AnalyticsTracker {
     String name, {
     Map<String, Object> properties = const {},
   }) async {
+    final validated = AnalyticsEvents.validate(name, properties);
     final database = await _database.instance;
     final occurredAt = DateTime.now().toUtc();
     final eventId = 'event_${occurredAt.microsecondsSinceEpoch}_${_sequence++}';
-    final sessionId = properties['sessionId'] as String?;
+    final sessionId = validated['sessionId'] as String?;
     final eventRow = <String, Object?>{
       'id': eventId,
       'event_name': name,
@@ -30,7 +31,7 @@ class LocalAnalytics implements AnalyticsTracker {
       'occurred_at': occurredAt.toIso8601String(),
       'user_id': _userIdentity.dataOwnerId,
       'session_id': sessionId,
-      'properties_json': jsonEncode(properties),
+      'properties_json': jsonEncode(validated),
       'upload_status': SyncOutboxStatus.pending.name,
     };
 
