@@ -56,9 +56,11 @@ and physical-device decisions under explicit owner control.
 ### Git Integration
 
 - Implemented on `feature/step-12-release-readiness` from `develop`.
-- Integration into `develop` is tracked by
-  [PR #13](https://github.com/fauzibinfaisal/ExamCoach/pull/13) and gated by its
-  hosted GitHub checks; `main` remains unchanged.
+- Squash-merged into `develop` through
+  [PR #13](https://github.com/fauzibinfaisal/ExamCoach/pull/13) after the hosted
+  quality/emulator and Android artifact jobs passed on
+  [run #34752992038](https://github.com/fauzibinfaisal/ExamCoach/actions/runs/34752992038).
+  `main` remains unchanged.
 
 ### Result
 
