@@ -52,11 +52,10 @@ guarantee passing.
 | 12 | Product analytics, accessibility, performance, CI, and release readiness | Complete |
 
 Current position: **Step 12 of 12 complete (100% repository roadmap)**. Current
-development version is `0.12.0+12`; SQLite schema remains v8. Work is on
-`feature/step-12-release-readiness` and is tracked for integration into
-`develop` by [PR #13](https://github.com/fauzibinfaisal/ExamCoach/pull/13).
-Hosted CI is the required integration gate; `main` remains release-only and
-unchanged.
+development version is `0.12.0+12`; SQLite schema remains v8. Step 12 was
+squash-merged into `develop` through
+[PR #13](https://github.com/fauzibinfaisal/ExamCoach/pull/13) after all hosted CI
+gates passed. `main` remains release-only and unchanged.
 
 ## Step 12 Delivered
 
@@ -104,8 +103,8 @@ in `engineering/Firebase_Integration.md` and
   minSdk 24, 169,726,077 bytes of the 199,229,440-byte budget.
 - Android APK SHA-256:
   `68318dad45ae148b75972ef72bc59a52b77263fc26e57921f3bfb550d76130d2`.
-- GitHub Actions workflow syntax: pass locally; hosted checks are tracked by
-  [PR #13](https://github.com/fauzibinfaisal/ExamCoach/pull/13).
+- Hosted GitHub Actions: pass for quality/tests/emulators and Android artifact
+  on [run #34752992038](https://github.com/fauzibinfaisal/ExamCoach/actions/runs/34752992038).
 - iOS build/device/signing test: skipped by owner direction.
 - Real Firebase/OpenAI/RevenueCat/store test: requires owner configuration.
 
