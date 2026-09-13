@@ -1,5 +1,56 @@
 # Decision Log
 
+## DEC-012 — Staged Release Gates, Attestation, and Privacy-Bounded Telemetry
+
+Date: 2026-09-13
+
+Status:
+- Accepted
+
+Context:
+
+The final repository milestone needs repeatable validation and production
+signals without pretending that CI equals store approval, enabling telemetry
+without privacy review, breaking local-first development, or locking legitimate
+clients out before App Check is observed in a development environment.
+
+Decision:
+
+Run formatting, metadata checks, static analysis, Flutter tests, Functions
+tests/audit, Firebase Rules/callable emulators, and an Android artifact build in
+GitHub Actions. Enforce a 190 MiB debug APK budget and test the primary flow at
+200% text scaling on a 320-pixel viewport. Allow-list analytics names,
+properties, scalar types, and string sizes on client and server. Add structured
+Functions logs using a truncated SHA-256 subject hash. Make App Check client
+activation, debug provider, Crashlytics collection, and callable enforcement
+independent opt-in controls that default off.
+
+Reason:
+
+- CI makes the already-tested contracts repeatable on pull requests.
+- Device performance cannot be represented honestly by flaky shared-runner
+  timing assertions; artifact size is automated while startup/frame budgets use
+  physical-device evidence.
+- Independent analytics validation prevents accidental personal or unbounded
+  data from crossing the sync boundary.
+- Staged App Check avoids an accidental production lockout and keeps emulator
+  development reproducible.
+- Opt-in Crashlytics respects the pending owner privacy/retention decision.
+
+Impact:
+
+- Development version advances to `0.12.0+12`; SQLite remains schema v8.
+- Production is still blocked on owner-controlled Firebase/store/signing/legal,
+  branch-protection, physical-device, and content acceptance actions.
+- `main` remains release-only until a separately approved release branch.
+
+Related Documents:
+
+- `docs/engineering/Release_Readiness.md`
+- `docs/engineering/Analytics_Event_Map.md`
+- `docs/engineering/Release_Versioning.md`
+- `.github/workflows/ci.yml`
+
 ## DEC-011 — AI Explanation Boundary and Backend-Verified Entitlements
 
 Date: 2026-09-11

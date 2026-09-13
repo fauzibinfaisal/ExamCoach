@@ -1,5 +1,7 @@
 "use strict";
 
+const {validateAnalyticsProperties} = require("./analytics_contract");
+
 const crypto = require("node:crypto");
 
 const SESSION_STATUSES = new Set([
@@ -196,16 +198,26 @@ function normalizeAnalytics(payload, expectedUid, entityId, operation) {
       string(payload.user_id, "payload.user_id") !== expectedUid) {
     throw new ProtocolError("analytics ID or authenticated owner mismatch");
   }
+  const eventName = safeId(payload.event_name, "payload.event_name");
+  const properties = parseJsonObject(
+    payload.properties_json,
+    "payload.properties_json",
+  );
+  try {
+    validateAnalyticsProperties(eventName, properties);
+  } catch (error) {
+    throw new ProtocolError(error.message);
+  }
   return {
     id: entityId,
     user_id: expectedUid,
-    event_name: safeId(payload.event_name, "payload.event_name"),
+    event_name: eventName,
     event_version: integer(payload.event_version, "payload.event_version"),
     occurred_at: utcTime(payload.occurred_at, "payload.occurred_at"),
     session_id: payload.session_id == null
       ? null
       : safeId(payload.session_id, "payload.session_id"),
-    properties: parseJsonObject(payload.properties_json, "payload.properties_json"),
+    properties,
   };
 }
 

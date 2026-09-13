@@ -1,7 +1,9 @@
 "use strict";
 
+const crypto = require("node:crypto");
 const {initializeApp} = require("firebase-admin/app");
 const {FieldValue, getFirestore} = require("firebase-admin/firestore");
+const logger = require("firebase-functions/logger");
 const {HttpsError, onCall} = require("firebase-functions/v2/https");
 const {defineJsonSecret} = require("firebase-functions/params");
 const {AiCoachService, AiCoachServiceError} = require("./ai_coach_service");
@@ -26,6 +28,8 @@ const {
 initializeApp();
 const db = getFirestore();
 const REGION = "asia-southeast2";
+const ENFORCE_APP_CHECK =
+  process.env.EXAMCOACH_ENFORCE_APP_CHECK === "true";
 const AI_PROVIDER_CONFIG = defineJsonSecret("AI_PROVIDER_CONFIG");
 const REVENUECAT_SERVER_CONFIG = defineJsonSecret("REVENUECAT_SERVER_CONFIG");
 const aiCoachService = new AiCoachService({
@@ -38,7 +42,12 @@ const entitlementService = new RevenueCatEntitlementService({
 });
 
 exports.pushSyncBatch = onCall(
-  {region: REGION, timeoutSeconds: 60, memory: "256MiB"},
+  {
+    region: REGION,
+    timeoutSeconds: 60,
+    memory: "256MiB",
+    enforceAppCheck: ENFORCE_APP_CHECK,
+  },
   async (request) => {
     const uid = requireUid(request);
     const data = requireProtocol(request.data);
@@ -73,12 +82,22 @@ exports.pushSyncBatch = onCall(
         throw error;
       }
     }
+    logger.info("sync_batch_completed", {
+      subject_hash: subjectHash(uid),
+      operation_count: results.length,
+      accepted_count: results.filter((item) => item.outcome === "accepted").length,
+    });
     return {protocolVersion: 1, results};
   },
 );
 
 exports.pullRecoverySnapshot = onCall(
-  {region: REGION, timeoutSeconds: 60, memory: "256MiB"},
+  {
+    region: REGION,
+    timeoutSeconds: 60,
+    memory: "256MiB",
+    enforceAppCheck: ENFORCE_APP_CHECK,
+  },
   async (request) => {
     const uid = requireUid(request);
     requireProtocol(request.data);
@@ -119,7 +138,7 @@ exports.pullRecoverySnapshot = onCall(
         }
       }
     }
-    return {
+    const result = {
       protocolVersion: 1,
       userId: uid,
       remoteRevision: userSnapshot.exists
@@ -128,11 +147,22 @@ exports.pullRecoverySnapshot = onCall(
       sessions,
       answers,
     };
+    logger.info("recovery_snapshot_completed", {
+      subject_hash: subjectHash(uid),
+      session_count: sessions.length,
+      answer_count: answers.length,
+    });
+    return result;
   },
 );
 
 exports.getAiCoachStatus = onCall(
-  {region: REGION, timeoutSeconds: 30, memory: "256MiB"},
+  {
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+    enforceAppCheck: ENFORCE_APP_CHECK,
+  },
   async (request) => {
     const uid = requireUid(request);
     requireProtocol(request.data);
@@ -142,6 +172,7 @@ exports.getAiCoachStatus = onCall(
         quota: await aiCoachService.getStatus(uid),
       };
     } catch (error) {
+      logCallableFailure("ai_coach_status_failed", uid, error);
       throw mapAiCoachError(error);
     }
   },
@@ -152,6 +183,7 @@ exports.requestAiCoachInsight = onCall(
     region: REGION,
     timeoutSeconds: 60,
     memory: "256MiB",
+    enforceAppCheck: ENFORCE_APP_CHECK,
     secrets: [AI_PROVIDER_CONFIG],
   },
   async (request) => {
@@ -159,8 +191,15 @@ exports.requestAiCoachInsight = onCall(
     const data = requireProtocol(request.data);
     try {
       const result = await aiCoachService.request(uid, data);
+      logger.info("ai_coach_request_completed", {
+        subject_hash: subjectHash(uid),
+        plan_id: result.quota.planId,
+        server_cache: result.insight.fromServerCache,
+        provider: result.insight.provider,
+      });
       return {protocolVersion: 1, ...result};
     } catch (error) {
+      logCallableFailure("ai_coach_request_failed", uid, error);
       throw mapAiCoachError(error);
     }
   },
@@ -171,17 +210,25 @@ exports.refreshSubscriptionEntitlement = onCall(
     region: REGION,
     timeoutSeconds: 30,
     memory: "256MiB",
+    enforceAppCheck: ENFORCE_APP_CHECK,
     secrets: [REVENUECAT_SERVER_CONFIG],
   },
   async (request) => {
     const uid = requireUid(request);
     requireProtocol(request.data);
     try {
+      const entitlement = await entitlementService.refresh(uid);
+      logger.info("subscription_entitlement_refreshed", {
+        subject_hash: subjectHash(uid),
+        plan_id: entitlement.planId,
+        is_premium: entitlement.planId !== "free",
+      });
       return {
         protocolVersion: 1,
-        entitlement: await entitlementService.refresh(uid),
+        entitlement,
       };
     } catch (error) {
+      logCallableFailure("subscription_entitlement_failed", uid, error);
       if (error instanceof EntitlementServiceError) {
         throw new HttpsError(error.code, error.message);
       }
@@ -457,6 +504,18 @@ function safeResultId(source) {
 
 function integerOrZero(value) {
   return Number.isSafeInteger(value) && value >= 0 ? value : 0;
+}
+
+function subjectHash(uid) {
+  return crypto.createHash("sha256").update(uid).digest("hex").slice(0, 24);
+}
+
+function logCallableFailure(event, uid, error) {
+  logger.warn(event, {
+    subject_hash: subjectHash(uid),
+    error_code: typeof error?.code === "string" ? error.code : "internal",
+    error_type: typeof error?.name === "string" ? error.name : "Error",
+  });
 }
 
 function createAiCoachProvider() {

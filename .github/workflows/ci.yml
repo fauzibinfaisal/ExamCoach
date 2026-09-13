@@ -1,0 +1,121 @@
+name: ExamCoach CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: examcoach-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality, tests, and emulators
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
+
+      - name: Check release metadata
+        run: dart run tool/check_release_metadata.dart
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed lib test tool
+
+      - name: Analyze Flutter source
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        run: flutter test --coverage
+
+      - name: Install Functions dependencies
+        run: npm ci --prefix functions
+
+      - name: Run Functions unit tests
+        run: npm test --prefix functions
+
+      - name: Audit production Functions dependencies
+        run: npm audit --prefix functions --omit=dev --audit-level=high
+
+      - name: Test Firestore Rules
+        run: >-
+          npx --yes firebase-tools@15.8.0 emulators:exec
+          --project examcoach-test --only firestore
+          "npm --prefix functions run test:rules"
+
+      - name: Test authenticated callable flows
+        env:
+          EXAMCOACH_AI_EMULATOR_STUB: "true"
+          EXAMCOACH_SUBSCRIPTION_EMULATOR_STUB: "true"
+        run: >-
+          npx --yes firebase-tools@15.8.0 emulators:exec
+          --project examcoach-test --only auth,firestore,functions
+          "npm --prefix functions run test:callable"
+
+  android-debug:
+    name: Android debug artifact
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
+
+      - name: Build Android debug APK
+        run: flutter build apk --debug
+
+      - name: Enforce APK size budget
+        run: >-
+          dart run tool/check_apk_budget.dart
+          build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Upload Android debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: examcoach-android-debug
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14

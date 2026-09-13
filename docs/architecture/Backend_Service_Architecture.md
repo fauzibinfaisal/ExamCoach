@@ -42,6 +42,13 @@ uses a separate secret-bound RevenueCat REST adapter. The client cannot submit
 its plan or mutate quota/entitlement documents. See
 `../engineering/AI_Coach_and_Subscriptions.md` for activation and protocols.
 
+Step 12 adds independently staged App Check enforcement to every callable,
+strict analytics event/property validation before Firestore persistence, and
+structured operational logs for sync, recovery, AI, and entitlement flows.
+Logs use a bounded SHA-256 subject hash rather than the raw Auth UID and exclude
+learning content, AI text, payment data, prices, and secrets. See
+`../engineering/Release_Readiness.md`.
+
 ## Services
 - auth
 - content
@@ -61,6 +68,8 @@ Use for trusted operations:
 - structured AI requests and response validation;
 - RevenueCat entitlement refresh;
 - atomic server quota and cache reservation;
+- App Check validation after staged enforcement;
+- bounded structured operational telemetry;
 - leaderboard aggregation
 - analytics processing
 - scheduled jobs

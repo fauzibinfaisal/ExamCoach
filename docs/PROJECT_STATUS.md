@@ -2,11 +2,11 @@
 
 ## Current Phase
 
-Step 11 repository implementation is complete. ExamCoach now has structured AI
-Coach output, server-owned quota and cache, RevenueCat offering/purchase/restore,
-and trusted backend entitlement refresh while preserving the deterministic,
-offline-first learning loop. The next milestone is Step 12 product analytics,
-accessibility, performance, CI, observability, and release readiness.
+Step 12 repository implementation is complete. All 12 development-roadmap
+milestones now have code, automated validation, and documented handoff. Step 12
+adds CI, analytics privacy contracts, large-text accessibility protection,
+artifact budgets, structured observability, staged App Check, and opt-in
+Crashlytics without weakening the deterministic offline-first learning loop.
 
 Real Firebase/OpenAI/RevenueCat/store environments have not been created,
 configured, or deployed by this work. Until the owner supplies the documented
@@ -49,82 +49,80 @@ guarantee passing.
 | 9 | Human content review, similarity checks, and immutable publication | Complete |
 | 10 | Firebase authentication, remote data, and cross-device recovery | Complete |
 | 11 | Structured AI Coach, quota, entitlements, and subscriptions | Complete |
-| 12 | Product analytics, accessibility, performance, CI, and release readiness | Next |
+| 12 | Product analytics, accessibility, performance, CI, and release readiness | Complete |
 
-Current position: **Step 11 of 12 complete (92%)**. Current development version
-is `0.11.0+11`; SQLite schema is v8. Step 11 is integrated into `develop`
-through [PR #12](https://github.com/fauzibinfaisal/ExamCoach/pull/12).
-`main` remains release-only and unchanged.
+Current position: **Step 12 of 12 complete (100% repository roadmap)**. Current
+development version is `0.12.0+12`; SQLite schema remains v8. Work is on
+`feature/step-12-release-readiness` for protected pull-request integration into
+`develop`. `main` remains release-only and unchanged.
 
-## Step 11 Delivered
+## Step 12 Delivered
 
-- Canonical version-1 learning context with recursive sorted JSON, SHA-256 key,
-  integer/basis-point metrics, millisecond UTC normalization, and server
-  revalidation before quota/provider work.
-- AI Coach Cubit/page reachable from Result and Home, including deterministic
-  fallback, no-result, signed-out, loading, ready, cached, quota-exhausted,
-  disabled, and failure states.
-- Authenticated status/generation callables with configurable Free/Premium plan
-  policy, UTC-day quota, atomic reservation/release, duplicate-in-flight guard,
-  expiry, and capability-aware same-context server cache hits. Upgrading from a
-  Free result to a study-plan-enabled tier forces regeneration before the paid
-  capability is shown.
-- OpenAI Responses API adapter with server-only JSON secret, strict JSON Schema,
-  compact instructions, output ceiling, `store: false`, hashed safety ID,
-  prompt cache key, and server output/guarantee validation.
-- SQLite schema v8 `ai_coach_insights` cache tied to the completed source
-  session; expired cache is deleted and cache/analytics failure cannot block
-  valid coaching or deterministic learning.
-- RevenueCat Flutter integration for current offering, localized store prices,
-  purchase, restore, authenticated Firebase UID identity, and safe disabled
-  configuration.
-- Backend RevenueCat customer lookup and mapping of active entitlements to
-  policy plan IDs. Only backend materialization controls AI plan/quota; client
-  purchase state is not authority.
-- Android Billing permission, ignored local-secret/runtime templates, Free-safe
-  policy template, analytics events, architecture/setup/acceptance guide, and
-  pre-1.0 version `0.11.0+11`.
+- GitHub Actions gates pull requests with formatting, pre-1.0 metadata,
+  analyzer, all Flutter tests, Functions tests/audit, Firestore Rules and
+  callable emulators, Android build, APK budget, and artifact upload.
+- Flutter and Functions independently allow-list analytics event names,
+  properties, scalar values, and string size before data can enter the outbox
+  or Firestore.
+- Structured sync/recovery/AI/subscription logs use a truncated SHA-256 subject
+  hash and bounded dimensions without raw UID, learning content, AI text,
+  payment data, price, or secret values.
+- Opt-in Firebase App Check uses Play Integrity on Android and App Attest with
+  DeviceCheck fallback on Apple; the debug provider and callable enforcement
+  are separate, default-off rollout controls.
+- Opt-in Crashlytics collection installs Flutter-framework and unhandled async
+  error reporting only when explicitly enabled.
+- Screen-reader labels for question choices, progress, and score plus automated
+  320-pixel/200%-text coverage. Responsive session controls/tags fix the
+  overflows found by that regression test.
+- Automated pre-1.0 version and 190 MiB debug-APK guards, plus honest physical
+  Android startup/frame budgets for owner acceptance.
+- Development version `0.12.0+12`; SQLite stays v8 because no persistence
+  contract changed.
 
-Full setup, protocol, and manual acceptance instructions are in
-`engineering/AI_Coach_and_Subscriptions.md`. Step 10 Firebase setup remains in
-`engineering/Firebase_Integration.md`.
+The full checked repository/owner checklist is in
+`engineering/Release_Readiness.md`. Firebase and AI/subscription activation stay
+in `engineering/Firebase_Integration.md` and
+`engineering/AI_Coach_and_Subscriptions.md`.
 
 ## Validation Snapshot
 
 - Dart formatting: pass.
 - Flutter analyzer: pass, no issues.
-- Flutter test suite: pass, 59 tests.
-- Backend core/provider: pass, 17 tests.
+- Flutter test suite: pass, 65 tests, including analytics contract, release
+  guard, semantics, 48-pixel target, 320-pixel viewport, and 200% text.
+- Backend core/provider/analytics: pass, 19 tests.
 - Auth/Firestore/Functions callable emulator: pass, 2 end-to-end suites,
   including AI cache/quota and RevenueCat entitlement materialization.
 - Firestore Rules emulator: pass, including owned AI read, cross-user denial,
   direct AI write denial, and private policy denial.
 - Production npm audit: pass, zero vulnerabilities.
-- Android debug build: pass; version `0.11.0`, build `11`, minSdk 24,
-  169,220,184 bytes.
+- Release metadata guard: pass for `0.12.0+12`.
+- Android debug build and size budget: pass; version `0.12.0`, build `12`,
+  minSdk 24, 169,726,077 bytes of the 199,229,440-byte budget.
 - Android APK SHA-256:
-  `1b464d139c259ae63d221190df5b5849f543f2baef0dd45d3854c04f2f442e64`.
+  `68318dad45ae148b75972ef72bc59a52b77263fc26e57921f3bfb550d76130d2`.
+- GitHub Actions workflow syntax: pass locally; actual hosted checks run after
+  the Step 12 branch is pushed.
 - iOS build/device/signing test: skipped by owner direction.
 - Real Firebase/OpenAI/RevenueCat/store test: requires owner configuration.
 
 ## Next Steps
 
-1. Owner: follow `engineering/AI_Coach_and_Subscriptions.md` to choose quotas,
-   OpenAI model, RevenueCat products/entitlements/prices, create secrets, and
-   run the Android test-purchase acceptance plan.
-2. Owner: complete the Firebase development-project setup and two-device
-   recovery test in `engineering/Firebase_Integration.md` if not already done.
-3. Have a real human review and publish production question content.
-4. Step 12: add CI-required checks, accessibility semantics and device checks,
-   performance budgets, Crashlytics/structured observability, App Check,
-   analytics dashboards, and release identifiers/signing/store readiness.
-5. Decide whether the selected RevenueCat plan and operations warrant a signed
-   webhook for proactive renewals/cancellations; current backend refresh plus
-   stored expiry fails closed safely.
+1. Integrate Step 12 into `develop` through its pull request after hosted CI.
+2. Owner: complete the unchecked items in
+   `engineering/Release_Readiness.md` in order; they require owner accounts,
+   legal/product decisions, store authority, signing keys, or physical devices.
+3. Keep `main` unchanged until the owner signs off a separate release candidate.
+4. After acceptance, create `release/x.y.z`, select the first stable version,
+   merge to `main`, and tag the exact released commit.
 
 ## Owner/External Actions Required
 
 - Select/configure a Firebase development project and deployment credentials.
+- Configure staged App Check, review valid traffic, then enable callable
+  enforcement; never ship the debug provider.
+- Approve Crashlytics privacy/retention and verify one symbolicated test crash.
 - Select an OpenAI model/API key and approve per-plan daily quotas/cache TTL.
 - Create RevenueCat/store products, offering, entitlement IDs, localized
   pricing, public Android SDK key, and server secret key.
@@ -132,6 +130,8 @@ Full setup, protocol, and manual acceptance instructions are in
   scenarios. iOS stays deferred per owner direction.
 - Approve production content, privacy/retention/deletion/refund/support policy,
   identifiers, signing, and store metadata.
+- Require hosted CI checks in GitHub branch protection after their first run.
+- Measure Android cold start/frame health on a selected physical baseline device.
 
 ## Known Limitations
 
@@ -142,9 +142,9 @@ Full setup, protocol, and manual acceptance instructions are in
 - Subscription renewal/cancellation is refreshed on paywall load,
   purchase/restore, and bounded by stored expiry. A proactive RevenueCat webhook
   is not yet operational.
-- App Check, email verification policy, account deletion, remote retention,
-  production observability, accessibility/performance gates, legal links, and
-  release signing remain Step 12/owner work.
+- App Check/Crashlytics code and gates exist, but real enforcement, alerting,
+  privacy acceptance, physical performance evidence, legal links, and release
+  signing remain owner/environment work.
 - Emulator Functions use host Node 26 while deployment is pinned to Node 22;
   exact-runtime CI is pending.
 - Firebase plugins still emit Flutter's future built-in Kotlin migration
@@ -157,6 +157,10 @@ Full setup, protocol, and manual acceptance instructions are in
 - Quota, entitlement, AI provider, and AI cache are server-owned and
   authenticated; provider/RevenueCat secrets never enter Flutter.
 - Store offering data supplies all product text/price; prices are not hard-coded.
+- Analytics and operational logs are schema-bounded and privacy-minimized;
+  telemetry activation never becomes a learning dependency.
+- App Check is staged and additive to Auth, Rules, server authorization, quota,
+  and entitlement validation.
 - SQLite writes/outbox share transaction boundaries; cache failure cannot block
   learning or hide an already charged valid response.
 - `main` is release-only, `develop` is integration, and normal work uses
