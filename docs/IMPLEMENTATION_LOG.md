@@ -18,11 +18,15 @@ an authenticated mobile-generated link.
 - Added milestones W0 through W5 and explicit acceptance criteria.
 - Left web stack, repository layout, browser persistence, hosting, and full web
   profile authentication as decisions for the implementation session.
+- Pinned both hosted CI jobs to Ubuntu 24.04 and advanced artifact upload to v5
+  after GitHub announced the `ubuntu-latest` migration and Node 20 action-runtime
+  deprecation.
 
 ### Validation
 
-- Documentation links and Markdown structure reviewed locally.
-- No application/backend code changed; no runtime test was required.
+- Documentation links, Markdown structure, and workflow YAML reviewed locally.
+- No application/backend runtime code changed; the pull request still requires
+  all hosted quality, emulator, Android build, size, and artifact gates.
 - No Firebase project, billing, hosting, or deployment was created.
 
 ### Result
