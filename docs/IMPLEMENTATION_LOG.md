@@ -1,5 +1,35 @@
 # Implementation Log
 
+## 2026-09-18 — Web-Linked Mock Test Product Definition
+
+### Objective
+
+Create durable cross-session product context for a desktop mock test opened from
+an authenticated mobile-generated link.
+
+### Documented
+
+- Defined a primary profile → mobile link creation → laptop browser tryout →
+  deterministic result/sync journey.
+- Accepted a server-owned 12-hour link lifetime and permanent invalidation after
+  completion, expiry, or owner revocation.
+- Defined single-browser claim, safe refresh/reconnect, idempotent submission,
+  least-privilege access, token privacy, and deterministic scoring boundaries.
+- Added milestones W0 through W5 and explicit acceptance criteria.
+- Left web stack, repository layout, browser persistence, hosting, and full web
+  profile authentication as decisions for the implementation session.
+
+### Validation
+
+- Documentation links and Markdown structure reviewed locally.
+- No application/backend code changed; no runtime test was required.
+- No Firebase project, billing, hosting, or deployment was created.
+
+### Result
+
+Product contract ready for a new session. Implementation remains not started,
+the mobile version stays `0.12.0+12`, and `main` remains unchanged.
+
 ## 2026-09-13 — CI, Accessibility, Observability, and Release Readiness
 
 ### Objective

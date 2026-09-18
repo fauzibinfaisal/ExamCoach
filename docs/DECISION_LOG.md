@@ -1,5 +1,59 @@
 # Decision Log
 
+## DEC-013 — Mobile-Issued, Expiring Browser Tryout Access
+
+Date: 2026-09-18
+
+Status:
+- Accepted product contract; web technology decision pending
+
+Context:
+
+Users need a desktop mock-test experience that resembles a real computer-based
+exam without manually finding or rebuilding the same attempt on a laptop. The
+mobile app already owns authenticated profile context, question-pack identity,
+and the offline-first learning loop. Browser access therefore needs a bounded,
+auditable handoff rather than a permanent public URL.
+
+Decision:
+
+An authenticated mobile user may create an opaque browser link scoped to one
+owner, one tryout/content fingerprint, and one intended exam session. The link
+expires no later than 12 hours after server-side creation and becomes
+permanently inactive on completion, expiry, or owner revocation. First claim is
+bound to one browser session, refresh can recover that session, and final submit
+is idempotent. The capability grants only the named tryout and never general
+profile access. Tokens and personal/answer data must not enter URLs beyond the
+opaque capability, persistence in raw form, logs, analytics, or third-party
+requests.
+
+Reason:
+
+- Mobile creation gives the link an authenticated owner and explicit intent.
+- A short, server-owned lifetime limits exposure from copying or browser
+  history.
+- Browser-session binding prevents silent concurrent takeover while allowing
+  safe refresh/reconnect recovery.
+- Terminal completion/revocation prevents replay and duplicate results.
+- Scoping preserves deterministic learning authority and least privilege.
+
+Impact:
+
+- A new Web CBT delivery track begins independently of the completed mobile
+  roadmap.
+- A trusted online backend is required for real hosted links, but development
+  can start entirely with Firebase Emulator Suite before billing is enabled.
+- Web framework, monorepo/repository layout, hosting, full web-profile login,
+  and persistence implementation remain explicit follow-up decisions.
+- The mobile version remains `0.12.0+12` because this entry defines product
+  behavior only.
+
+Related Documents:
+
+- `docs/product/Web_Linked_Mock_Test_PRD.md`
+- `docs/PROJECT_STATUS.md`
+- `docs/engineering/Firebase_Integration.md`
+
 ## DEC-012 — Staged Release Gates, Attestation, and Privacy-Bounded Telemetry
 
 Date: 2026-09-13

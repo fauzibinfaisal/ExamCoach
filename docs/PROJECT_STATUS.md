@@ -57,6 +57,24 @@ squash-merged into `develop` through
 [PR #13](https://github.com/fauzibinfaisal/ExamCoach/pull/13) after all hosted CI
 gates passed. `main` remains release-only and unchanged.
 
+## New Web CBT Track
+
+The owner has accepted the initial product contract for a desktop-first linked
+mock test. An authenticated mobile user creates a browser link scoped to one
+tryout; it is valid for at most 12 hours from server-side creation and becomes
+permanently unusable after completion, expiry, or owner revocation. The first
+browser claim is session-bound so a copied link cannot silently take over the
+attempt.
+
+This track is at **W0 of W5 (product definition in progress)**. No web runtime,
+link backend, hosting, or production environment has been implemented. The
+mobile roadmap remains complete and its current version does not change for a
+documentation-only product definition.
+
+The source of truth is `product/Web_Linked_Mock_Test_PRD.md`. The next session
+must decide the web stack/repository boundary and trusted sharing of learning
+contracts before implementation.
+
 ## Step 12 Delivered
 
 - GitHub Actions gates pull requests with formatting, pre-1.0 metadata,
@@ -110,11 +128,16 @@ in `engineering/Firebase_Integration.md` and
 
 ## Next Steps
 
-1. Owner: complete the unchecked items in
+1. Start Web CBT W0/W1 in a new feature branch: audit Flutter Web versus a
+   separate web frontend, record the architecture decision, threat-model the
+   link flow, and create the implementation plan.
+2. Keep real link/backend development on Firebase emulators until the owner is
+   ready to enable billing and deploy a development environment.
+3. Owner: complete the unchecked items in
    `engineering/Release_Readiness.md` in order; they require owner accounts,
    legal/product decisions, store authority, signing keys, or physical devices.
-2. Keep `main` unchanged until the owner signs off a separate release candidate.
-3. After acceptance, create `release/x.y.z`, select the first stable version,
+4. Keep `main` unchanged until the owner signs off a separate release candidate.
+5. After acceptance, create `release/x.y.z`, select the first stable version,
    merge to `main`, and tag the exact released commit.
 
 ## Owner/External Actions Required
