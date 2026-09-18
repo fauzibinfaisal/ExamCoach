@@ -18,7 +18,7 @@ an authenticated mobile-generated link.
 - Added milestones W0 through W5 and explicit acceptance criteria.
 - Left web stack, repository layout, browser persistence, hosting, and full web
   profile authentication as decisions for the implementation session.
-- Pinned both hosted CI jobs to Ubuntu 24.04 and advanced artifact upload to v5
+- Pinned both hosted CI jobs to Ubuntu 24.04 and advanced artifact upload to v7
   after GitHub announced the `ubuntu-latest` migration and Node 20 action-runtime
   deprecation.
 

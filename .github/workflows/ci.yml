@@ -113,7 +113,7 @@ jobs:
           build/app/outputs/flutter-apk/app-debug.apk
 
       - name: Upload Android debug APK
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: examcoach-android-debug
           path: build/app/outputs/flutter-apk/app-debug.apk
