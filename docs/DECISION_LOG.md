@@ -1,5 +1,73 @@
 # Decision Log
 
+## DEC-014 — Separate DOM Web Client, Shared Dart Learning Authority
+
+Date: 2026-09-19
+
+Status: Accepted for W1 implementation; hosting activation remains owner-gated.
+
+Decision:
+
+- Build a React + TypeScript + Vite web application in `apps/web`, with its own
+  npm lockfile and version `0.1.0`. Keep Flutter at the repository root and
+  Functions in `functions`; no mobile relocation or version change in W1.
+- Share versioned wire contracts through `contracts/web-cbt`; do not port the
+  learning algorithms to TypeScript. Existing pure Dart engine and models stay
+  authoritative. Before W4, extract them unchanged into a pure Dart package
+  consumed by mobile and a trusted Dart scoring service, with golden parity
+  tests. W1 neither extracts the engine nor computes browser results.
+- Use native browser routes `/profile` and `/mock-test`, semantic DOM, visible
+  keyboard focus, and responsive CSS. W1 profile is explicitly sample/signed-out
+  context; a link never grants full profile authentication.
+- W1 uses an in-memory fake repository only, enabled explicitly on loopback.
+  No real token creation/validation, persistence, claim, or production adapter.
+  Later browser authority is a server-issued HttpOnly Secure SameSite cookie;
+  IndexedDB may hold scoped answer drafts in W4, never credentials or scores
+  treated as authoritative. Server state wins recovery.
+- Develop all backend work against the demo Firebase Emulator Suite. Later
+  same-origin HTTPS Functions own link lifecycle and transactions; a private
+  Dart worker computes deterministic outputs from approved content/evidence.
+- Target Firebase Hosting for static assets and a same-origin Functions rewrite
+  in a later milestone. Its cookie forwarding requires the special `__session`
+  cookie (host-only, Path=/, HttpOnly, Secure, SameSite=Strict); do not assume a
+  `__Host-` cookie survives the rewrite. Use no-store responses and CSRF checks.
+  A private Cloud Run Dart worker is the proposed trusted runtime, tested
+  locally first; billing, project, IAM, region and deployment need the owner.
+
+Reason and evidence:
+
+The current bootstrap opens native sqflite and bundles question keys before
+Firebase initialization; Firebase options and subscriptions are mobile-specific.
+Reusing that entry point would require storage, asset and bootstrap changes
+unrelated to W1. DOM controls suit keyboard/text-heavy CBT and a profile website.
+React adds a second UI toolchain, but avoids coupling Android to the web shell.
+See `architecture/Web_Platform_Architecture.md` for the audit and sources.
+
+Alternatives rejected:
+
+- Current-package Flutter Web: feasible after adapters, but unsuitable as a
+  drop-in reuse of native persistence, mobile configuration and answer assets.
+- Separate Flutter Web app: good Dart UI reuse, but still needs a web storage,
+  routing, cookie gateway and server scoring boundary; shared widgets are not
+  a W1 requirement. Keep as a viable future alternative, not an impossibility.
+- Next.js/SSR: server rendering is unnecessary for the bounded W1 profile and
+  capability landing; an additional server lifecycle is not justified yet.
+- Copy scoring to JavaScript, or trust uploaded score/AI: rejected because it
+  creates competing authority. A Dart service adds deployment complexity but
+  keeps one versioned implementation; W4 cannot ship without proven parity.
+
+Impact:
+
+Mobile remains `0.12.0+12`, SQLite v8. Web uses independent pre-1.0 SemVer;
+contract schema versions are separate. W1 is a foundation, not a secure CBT
+release. W2–W5 and all product invariants in DEC-013 remain intact.
+
+Related documents:
+
+- [Architecture](architecture/Web_Platform_Architecture.md)
+- [Delivery plan](engineering/Web_Mock_Test_Delivery_Plan.md)
+- [Threat model](engineering/Web_Link_Security_Threat_Model.md)
+
 ## DEC-013 — Mobile-Issued, Expiring Browser Tryout Access
 
 Date: 2026-09-18
