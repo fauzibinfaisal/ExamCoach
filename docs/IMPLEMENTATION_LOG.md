@@ -44,7 +44,8 @@ parity tests before W4.
   storage/network checks. Fixed contrast findings and verified desktop screenshots.
 - Android debug build and 190 MiB budget: PASS, 169,723,345 bytes.
 - APK SHA-256: `590641cdd54c38d582d01747065f05f0575bc7d805a6b5d06e134c2516ae0283`.
-- Hosted CI and PR integration: pending.
+- Hosted CI and integration evidence: [PR #16](https://github.com/fauzibinfaisal/ExamCoach/pull/16). Merge is gated on all three
+  jobs: Quality/tests/emulators, Web foundation and Android debug artifact.
 
 ### Scope and next step
 

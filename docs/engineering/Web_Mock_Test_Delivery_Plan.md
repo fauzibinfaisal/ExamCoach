@@ -30,7 +30,7 @@ W1 completion is 1/5 = 20%, independently of the finished 12/12 mobile roadmap.
 - [x] Unit/component tests, browser keyboard/reflow, all status/terminal tests.
 - [x] Formatter, type checker/linter, tests and default web build pass.
 - [x] Flutter/Functions/emulator checks and Android debug budget still pass.
-- [ ] Structured commits, PR to develop, merge only after all hosted CI passes.
+- [x] Structured commits and [PR #16](https://github.com/fauzibinfaisal/ExamCoach/pull/16) to develop; merge only after all hosted CI passes.
 
 ## Local execution
 

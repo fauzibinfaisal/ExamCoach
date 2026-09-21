@@ -160,7 +160,7 @@ not belong in the record.
 | Milestone | Outcome | Status |
 |---|---|---|
 | W0 | Product contract, threat model, and open decisions | Complete |
-| W1 | Web stack/monorepo decision and desktop shell | Implemented; integration gates pending |
+| W1 | Web stack/monorepo decision and desktop shell | Implemented; integration tracked in [PR #16](https://github.com/fauzibinfaisal/ExamCoach/pull/16) |
 | W2 | Authenticated mobile link creation and revocation | Not started |
 | W3 | Secure browser claim and computer-test workspace | Not started |
 | W4 | Autosave, reconnect recovery, submit, result sync | Not started |

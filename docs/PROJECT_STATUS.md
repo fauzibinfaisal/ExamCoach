@@ -67,7 +67,8 @@ browser claim is session-bound so a copied link cannot silently take over the
 attempt.
 
 The W1 foundation is implemented: **W1 of W5 (20% of the web implementation
-track)**, with W0 preparation complete. Hosted integration validation is pending.
+track)**, with W0 preparation complete. Hosted checks and integration into
+`develop` are tracked in [PR #16](https://github.com/fauzibinfaisal/ExamCoach/pull/16); merge requires every CI gate to pass.
 The completed mobile roadmap remains **12/12 (100%)** at `0.12.0+12`, SQLite v8.
 
 DEC-014 selects one repository with separate applications: mobile at root,
@@ -165,7 +166,8 @@ in `engineering/Firebase_Integration.md` and
 
 ## Next Steps
 
-1. Complete W1 hosted CI and integrate only into `develop` after every gate passes.
+1. Use [PR #16](https://github.com/fauzibinfaisal/ExamCoach/pull/16) for W1 hosted validation and integration evidence; merge only
+   into `develop` after every gate passes.
 2. Start W2 on a new feature branch: authenticated mobile create/revoke,
    server-owned 12-hour expiry and scope, hash-only token storage and emulator
    abuse/ownership tests. Use only `demo-examcoach` and local provider stubs.
