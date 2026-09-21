@@ -55,3 +55,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Separate web client build and browser-test artifacts
+/apps/web/dist/
+/apps/web/playwright-report/
+/apps/web/test-results/
+/apps/web/.env.local
+/apps/web/.env.*.local
