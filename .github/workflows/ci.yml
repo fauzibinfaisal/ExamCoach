@@ -68,8 +68,11 @@ jobs:
       - name: Test Firestore Rules
         run: >-
           npx --yes firebase-tools@15.8.0 emulators:exec
-          --project examcoach-test --only firestore
+          --project demo-examcoach --only firestore
           "npm --prefix functions run test:rules"
+
+      - name: Keep emulator secrets local
+        run: cp functions/.secret.emulator.example functions/.secret.local
 
       - name: Test authenticated callable flows
         env:
@@ -77,7 +80,7 @@ jobs:
           EXAMCOACH_SUBSCRIPTION_EMULATOR_STUB: "true"
         run: >-
           npx --yes firebase-tools@15.8.0 emulators:exec
-          --project examcoach-test --only auth,firestore,functions
+          --project demo-examcoach --only auth,firestore,functions
           "npm --prefix functions run test:callable"
 
   android-debug:
@@ -119,3 +122,27 @@ jobs:
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+  web-foundation:
+    name: Web foundation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v5
+      - name: Set up Node 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install web dependencies
+        run: npm ci --prefix apps/web
+      - name: Check web formatting, lint, types, tests and build
+        run: npm run check --prefix apps/web
+      - name: Audit web dependencies
+        run: npm audit --prefix apps/web --audit-level=high
+      - name: Install Chromium
+        run: npm exec --prefix apps/web -- playwright install --with-deps chromium
+      - name: Test browser behavior and accessibility
+        run: npm run test:e2e --prefix apps/web

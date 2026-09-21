@@ -1,5 +1,60 @@
 # Implementation Log
 
+## 2026-09-19–21 — Web CBT W1 Foundation
+
+### Objective and decision
+
+Begin the five-milestone desktop Web CBT track without changing the accepted
+link/security/deterministic-learning contract or the completed mobile app.
+Verified a clean worktree and current `develop` at `9746833`; read the context
+pack and created `feature/web-cbt-w1-foundation`.
+
+Recorded DEC-014 in architecture commit `25c6270` before implementation. The
+owner confirmed one repository with separate mobile/web applications. React,
+TypeScript and Vite live in `apps/web`; the Dart learning engine is not ported
+or modified. Future trusted scoring must reuse a pure Dart package and pass
+parity tests before W4.
+
+### Implemented
+
+- Desktop-first sample profile and safe `/mock-test` landing.
+- All seven UI states, metadata-redacted terminal/claimed responses, strict
+  versioned JSON response schema and defensive server-time boundary checks.
+- In-memory fake repository with explicit loopback preview selection; default
+  build denies access. No credential generation, claim, questions or scoring.
+- Native semantic controls, skip link, visible focus, responsive CSS, URL
+  cleanup and no telemetry/browser persistence.
+- Separate web CI for formatting, lint, types, unit/component tests, build,
+  dependency audit and Chromium/axe tests; existing Android gates retained.
+- CI emulator project changed to `demo-examcoach`; dummy local secret overrides
+  prevent the CLI attempting Secret Manager lookups during provider-stub tests.
+- Architecture audit, W1–W5 plan, threat model and repository/version handoff.
+
+### Validation
+
+- Dart formatting, metadata guard and Flutter analyzer: PASS.
+- Flutter tests: PASS, 65.
+- Functions unit tests: PASS, 19; production audit: zero vulnerabilities.
+- Node 22 demo emulators: PASS, one Firestore Rules and two callable suites;
+  repeated with local dummy secrets and confirmed no Secret Manager lookup.
+- Web formatting, ESLint, TypeScript, unit/component tests: PASS, 43.
+- Default web build: PASS; web dependency audit: zero vulnerabilities.
+- Chromium responsive/keyboard/accessibility: PASS, 16 browser tests; all seven
+  states, 375/768/1024/1280/1440px, 200% text, axe, keyboard, URL cleanup and
+  storage/network checks. Fixed contrast findings and verified desktop screenshots.
+- Android debug build and 190 MiB budget: PASS, 169,723,345 bytes.
+- APK SHA-256: `590641cdd54c38d582d01747065f05f0575bc7d805a6b5d06e134c2516ae0283`.
+- Hosted CI and integration evidence: [PR #16](https://github.com/fauzibinfaisal/ExamCoach/pull/16). Merge is gated on all three
+  jobs: Quality/tests/emulators, Web foundation and Android debug artifact.
+
+### Scope and next step
+
+Web version `0.1.0`; mobile `0.12.0+12` and SQLite v8 unchanged. No production
+service/billing/domain was enabled; iOS remains deferred, `main` unchanged.
+W1 foundation = 1/5 (20%) once integration gates pass; W0 preparation complete.
+Next session: W2 authenticated create/revoke and emulator security tests only.
+Owner-only actions are in `engineering/Web_Mock_Test_Delivery_Plan.md`.
+
 ## 2026-09-18 — Web-Linked Mock Test Product Definition
 
 ### Objective

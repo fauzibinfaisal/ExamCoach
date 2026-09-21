@@ -74,3 +74,11 @@ budgets are in `Release_Readiness.md`.
 - Semantic Versioning: <https://semver.org/>
 - Flutter iOS deployment and version metadata:
   <https://docs.flutter.dev/deployment/ios>
+
+## Separate Web Application
+
+DEC-014 gives `apps/web/package.json` its own pre-1.0 SemVer, starting at `0.1.0`
+for W1. Increment minor for web capabilities and patch for compatible fixes;
+use the CI commit SHA for build identity. Its lockfile must match. Web-only
+changes do not increment the mobile version or SQLite schema. Wire-contract
+schema versions remain independent. There is no web `1.0.0` release or tag yet.
