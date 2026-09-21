@@ -1,10 +1,10 @@
 # ExamCoach — Web-Linked Mock Test PRD
 
-Status: Product behavior accepted; implementation not started
+Status: Product behavior accepted; W1 local foundation implemented, W2–W5 pending
 
 Owner: ExamCoach product owner
 
-Last updated: 2026-09-18
+Last updated: 2026-09-21
 
 ## Purpose
 
@@ -159,8 +159,8 @@ not belong in the record.
 
 | Milestone | Outcome | Status |
 |---|---|---|
-| W0 | Product contract, threat model, and open decisions | In progress |
-| W1 | Web stack/monorepo decision and desktop shell | Not started |
+| W0 | Product contract, threat model, and open decisions | Complete |
+| W1 | Web stack/monorepo decision and desktop shell | Implemented; integration gates pending |
 | W2 | Authenticated mobile link creation and revocation | Not started |
 | W3 | Secure browser claim and computer-test workspace | Not started |
 | W4 | Autosave, reconnect recovery, submit, result sync | Not started |
@@ -182,9 +182,13 @@ not belong in the record.
   pass.
 - [ ] Emulator and automated security tests pass before any real deployment.
 
-## Open Decisions for the New Session
+## Architecture Decisions and Remaining Owner Choices
 
-The implementation session must audit and record these decisions before coding:
+DEC-014 and [Web Platform Architecture](../architecture/Web_Platform_Architecture.md)
+resolve items 1–3, select a sample/signed-out W1 profile for item 4, and define
+initial QA widths for item 5. The owner confirmed a monorepo with separate apps.
+Hosting is a future target; accounts, domain, billing, retention and full profile
+login remain later owner choices. The original decision checklist is retained:
 
 1. Flutter Web in the current package versus a separate web frontend/monorepo.
 2. How deterministic scoring/content contracts are shared without duplicating

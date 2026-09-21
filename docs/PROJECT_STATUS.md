@@ -66,14 +66,51 @@ permanently unusable after completion, expiry, or owner revocation. The first
 browser claim is session-bound so a copied link cannot silently take over the
 attempt.
 
-This track is at **W0 of W5 (product definition in progress)**. No web runtime,
-link backend, hosting, or production environment has been implemented. The
-mobile roadmap remains complete and its current version does not change for a
-documentation-only product definition.
+The W1 foundation is implemented: **W1 of W5 (20% of the web implementation
+track)**, with W0 preparation complete. Hosted integration validation is pending.
+The completed mobile roadmap remains **12/12 (100%)** at `0.12.0+12`, SQLite v8.
 
-The source of truth is `product/Web_Linked_Mock_Test_PRD.md`. The next session
-must decide the web stack/repository boundary and trusted sharing of learning
-contracts before implementation.
+DEC-014 selects one repository with separate applications: mobile at root,
+React/TypeScript/Vite web at `apps/web`, and Node Functions at `functions`.
+The owner explicitly confirmed this monorepo boundary during W1. Web is `0.1.0`
+with its own dependencies, lockfile, tests, build and versioning. No mobile
+runtime or deterministic algorithm changed.
+
+Delivered W1 scope:
+
+- Desktop profile shell with explicit sample/signed-out context.
+- `/mock-test` landing with validating, ready, claimed, expired, revoked,
+  completed and invalid states; terminal/claimed responses expose no metadata.
+- Strict versioned response schema, time/shape checks and repository interface.
+- Memory-only fixtures behind explicit preview mode and exact loopback host;
+  default build denies access. No W1 route can open questions.
+- URL cleanup, native keyboard navigation, responsive CSS and accessibility
+  tests. No browser persistence, telemetry, cookie or real token is created.
+- Separate web CI and existing Flutter/backend/emulator/Android gates.
+
+Real link creation, browser claim, question delivery, autosave, trusted scoring,
+result import and hosting remain **W2–W5, not implemented**. The Dart learning
+engine stays the single implementation; extraction and a private trusted Dart
+runtime require parity tests before W4. Current mobile empty-device recovery
+must not be mistaken for web-result import into an existing history.
+
+Read [web architecture](architecture/Web_Platform_Architecture.md),
+[delivery plan](engineering/Web_Mock_Test_Delivery_Plan.md), and
+[threat model](engineering/Web_Link_Security_Threat_Model.md). No billing,
+Firebase project, deployment, iOS work or stable release was performed.
+
+## W1 Validation Snapshot
+
+- Web Prettier, ESLint, TypeScript and default/fixture builds: PASS.
+- Web unit/component tests: 43 PASS; Chromium browser tests: 16 PASS.
+- All seven link states, terminal/claimed metadata redaction, default-closed
+  build, URL cleanup, no browser persistence, keyboard navigation, axe checks,
+  five viewport widths and 200% text: PASS.
+- Flutter formatting/analyzer/metadata guard and 65 tests: PASS.
+- Functions 19 tests and one Rules/two callable emulator suites: PASS on Node 22.
+- npm audits for Functions production and all web dependencies: zero findings.
+- Android debug build/budget: PASS, 169,723,345 bytes (limit 199,229,440).
+- Real services, real link security and iOS: not in W1 scope.
 
 ## Step 12 Delivered
 
@@ -104,7 +141,7 @@ The full checked repository/owner checklist is in
 in `engineering/Firebase_Integration.md` and
 `engineering/AI_Coach_and_Subscriptions.md`.
 
-## Validation Snapshot
+## Previous Mobile Validation Snapshot
 
 - Dart formatting: pass.
 - Flutter analyzer: pass, no issues.
@@ -128,17 +165,15 @@ in `engineering/Firebase_Integration.md` and
 
 ## Next Steps
 
-1. Start Web CBT W0/W1 in a new feature branch: audit Flutter Web versus a
-   separate web frontend, record the architecture decision, threat-model the
-   link flow, and create the implementation plan.
-2. Keep real link/backend development on Firebase emulators until the owner is
-   ready to enable billing and deploy a development environment.
-3. Owner: complete the unchecked items in
-   `engineering/Release_Readiness.md` in order; they require owner accounts,
-   legal/product decisions, store authority, signing keys, or physical devices.
-4. Keep `main` unchanged until the owner signs off a separate release candidate.
-5. After acceptance, create `release/x.y.z`, select the first stable version,
-   merge to `main`, and tag the exact released commit.
+1. Complete W1 hosted CI and integrate only into `develop` after every gate passes.
+2. Start W2 on a new feature branch: authenticated mobile create/revoke,
+   server-owned 12-hour expiry and scope, hash-only token storage and emulator
+   abuse/ownership tests. Use only `demo-examcoach` and local provider stubs.
+3. Preserve DEC-013 product behavior and DEC-014 domain boundaries; do not
+   implement claim/workspace/finalization as incidental W2 additions.
+4. Owner: complete the web delivery plan's external checklist when ready for
+   hosted testing; billing and real deployment remain deferred.
+5. Keep `main` release-only. No `1.0.0` or iOS work without separate approval.
 
 ## Owner/External Actions Required
 
@@ -168,8 +203,8 @@ in `engineering/Firebase_Integration.md` and
 - App Check/Crashlytics code and gates exist, but real enforcement, alerting,
   privacy acceptance, physical performance evidence, legal links, and release
   signing remain owner/environment work.
-- Emulator Functions use host Node 26 while deployment is pinned to Node 22;
-  exact-runtime CI is pending.
+- W1 emulator validation uses isolated Node 22, matching Functions deployment;
+  the machine default remains Node 26, so select the runtime explicitly.
 - Firebase plugins still emit Flutter's future built-in Kotlin migration
   warning; the Android build currently passes.
 - Prototype and generated questions remain development-only drafts.

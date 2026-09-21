@@ -21,15 +21,15 @@ W1 completion is 1/5 = 20%, independently of the finished 12/12 mobile roadmap.
 
 ## W1 acceptance checklist
 
-- [ ] Architecture audit and DEC-014 precede implementation.
-- [ ] `apps/web` desktop shell and `/profile` sample context.
-- [ ] `/mock-test` validating/ready/claimed/expired/revoked/completed/invalid.
-- [ ] Strict versioned public response contract; denied responses have no metadata.
-- [ ] Explicit loopback-only fixture mode, no fake security implementation.
-- [ ] No questions, answer keys, actual claim, autosave, scoring or submit in W1.
-- [ ] Unit/component tests, browser keyboard/reflow, all status/terminal tests.
-- [ ] Formatter, type checker/linter, tests and default web build pass.
-- [ ] Flutter/Functions/emulator checks and Android debug budget still pass.
+- [x] Architecture audit and DEC-014 precede implementation.
+- [x] `apps/web` desktop shell and `/profile` sample context.
+- [x] `/mock-test` validating/ready/claimed/expired/revoked/completed/invalid.
+- [x] Strict versioned public response contract; denied responses have no metadata.
+- [x] Explicit loopback-only fixture mode, no fake security implementation.
+- [x] No questions, answer keys, actual claim, autosave, scoring or submit in W1.
+- [x] Unit/component tests, browser keyboard/reflow, all status/terminal tests.
+- [x] Formatter, type checker/linter, tests and default web build pass.
+- [x] Flutter/Functions/emulator checks and Android debug budget still pass.
 - [ ] Structured commits, PR to develop, merge only after all hosted CI passes.
 
 ## Local execution
@@ -51,7 +51,10 @@ until the real gateway exists. The repository README documents browser installs.
 
 Continue running the existing Flutter, Functions and Android commands in
 `Release_Readiness.md`. All backend runs must use Firebase Emulator Suite with
-`demo-examcoach`, never a live project; no billing is needed. W1 adds no backend
+`demo-examcoach`, never a live project; no billing is needed. Copy `functions/.secret.emulator.example` to the ignored
+`functions/.secret.local` if no local secret file exists, and enable both
+existing emulator stub flags for callable tests. This prevents Firebase CLI
+Secret Manager lookups, even for a demo project. W1 adds no backend
 endpoint and does not claim to test real links on the emulators.
 
 ## Future HTTP boundary (design only)

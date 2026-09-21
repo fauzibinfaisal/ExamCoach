@@ -136,3 +136,19 @@ branches from `develop`; reserve `main` for releases and urgent hotfixes. See
 release policy.
 
 The bundled question pack is development-only, marked `draft`, and must not be treated as published exam content without the documented human review workflow.
+
+## Web CBT foundation
+
+The desktop web client is a separate React/TypeScript application in
+[`apps/web`](apps/web/README.md), with independent version `0.1.0`, dependencies,
+tests and build. It currently contains a sample profile and local link-state
+preview only. Mobile remains `0.12.0+12`.
+
+```bash
+npm ci --prefix apps/web
+npm run dev --prefix apps/web
+```
+
+See the [web architecture](docs/architecture/Web_Platform_Architecture.md),
+[delivery plan](docs/engineering/Web_Mock_Test_Delivery_Plan.md), and
+[threat model](docs/engineering/Web_Link_Security_Threat_Model.md).
