@@ -596,3 +596,27 @@ function publicAnswer(value) {
     answered_at: value.answered_at,
   };
 }
+
+// W2 is closed unless the isolated demo emulator explicitly enables it.
+const {WebLinkService, WebLinkError} = require("./web_link_service");
+const webLinkService = new WebLinkService({database: db});
+for (const [name, action] of Object.entries({
+  getWebMockLinkManagement: "management",
+  createWebMockLink: "create",
+  revokeWebMockLink: "revoke",
+})) {
+  exports[name] = onCall(
+    {region: REGION, timeoutSeconds: 30, memory: "256MiB", enforceAppCheck: ENFORCE_APP_CHECK},
+    async (request) => {
+      const uid = requireUid(request);
+      try {
+        return await webLinkService.execute(action, uid, request.data);
+      } catch (error) {
+        // No request/response/error logging: a successful response contains a
+        // one-time bearer capability. Unknown SDK failures are also redacted.
+        const code = error instanceof WebLinkError ? error.code : "internal";
+        throw new HttpsError(code, "Web link request could not be completed.");
+      }
+    },
+  );
+}

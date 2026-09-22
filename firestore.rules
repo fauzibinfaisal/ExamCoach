@@ -1,5 +1,14 @@
 rules_version = '2';
 
+// Models: users/{uid} contains private mobile sync/AI data (owner read only).
+// published_question_packs contains full answer-bearing content (Admin only).
+// web_mock_links stores immutable ownerUid/tryoutId/fingerprint/sessionId, a
+// SHA-256 tokenHash, Timestamp createdAt/expiresAt and server-owned status.
+// web_mock_owners holds <=20 latest-link slots plus private receipts/counters;
+// web_mock_tryouts holds bounded synthetic manifests. See Web_Link_Management.md.
+// All client creates/updates are denied, so validation lives in callables, not
+// permissive owner-write validators. Admin SDK calls bypass Security Rules.
+
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedInAs(userId) {
@@ -18,13 +27,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Published content is server/CMS-managed. Draft and validated artifacts
-    // are never exposed by this public path.
+    // Full packs may contain answer keys/explanations. No client (including an
+    // authenticated owner) may read these. W3 serves an allowlisted projection.
     match /published_question_packs/{packId} {
-      allow read: if resource.data.validation_status == 'published';
+      allow read: if false;
       allow write: if false;
     }
 
+    // web_mock_links, web_mock_tryouts and web_mock_owners (including request
+    // receipts/rate limits) are Admin-only. Capability hashes, owner/session
+    // bindings and server timestamps must never enter the owner-readable tree.
     match /{document=**} {
       allow read, write: if false;
     }

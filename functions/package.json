@@ -6,9 +6,10 @@
     "node": "22"
   },
   "scripts": {
-    "test": "node --test test/sync_core.test.js test/analytics_contract.test.js test/ai_coach_core.test.js test/openai_ai_provider.test.js test/revenuecat_entitlement.test.js",
-    "test:callable": "node --test test/callable_emulator.test.js test/ai_coach_callable_emulator.test.js",
-    "test:rules": "node --test test/firestore_rules.test.js"
+    "test": "node --test test/sync_core.test.js test/analytics_contract.test.js test/ai_coach_core.test.js test/openai_ai_provider.test.js test/revenuecat_entitlement.test.js test/web_link_core.test.js",
+    "test:callable": "node --test test/callable_emulator.test.js test/ai_coach_callable_emulator.test.js test/web_link_callable_emulator.test.js",
+    "test:rules": "node --test test/firestore_rules.test.js",
+    "seed:web-links": "node scripts/seed_web_link_emulator.js"
   },
   "dependencies": {
     "firebase-admin": "^14.3.0",

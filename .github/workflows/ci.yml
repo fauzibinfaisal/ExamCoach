@@ -78,6 +78,7 @@ jobs:
         env:
           EXAMCOACH_AI_EMULATOR_STUB: "true"
           EXAMCOACH_SUBSCRIPTION_EMULATOR_STUB: "true"
+          EXAMCOACH_WEB_LINKS_ENABLED: "true"
         run: >-
           npx --yes firebase-tools@15.8.0 emulators:exec
           --project demo-examcoach --only auth,firestore,functions
