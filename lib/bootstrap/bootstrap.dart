@@ -1,3 +1,5 @@
+import 'package:exam_coach/features/web_mock/domain/web_link_repository.dart';
+import 'package:exam_coach/features/web_mock/data/firebase_web_link_repository.dart';
 import 'package:exam_coach/app/app.dart';
 import 'package:exam_coach/analytics/analytics_events.dart';
 import 'package:exam_coach/analytics/local_analytics.dart';
@@ -41,6 +43,7 @@ Future<void> bootstrap() async {
   late final AuthCubit authCubit;
   late final AiCoachCubit aiCoachCubit;
   late final SubscriptionCubit subscriptionCubit;
+  WebLinkRepository webLinkRepository = const UnavailableWebLinkRepository();
   try {
     final bundledBank = await BundledQuestionBankLoader().load();
     final database = await ExamCoachDatabase.openDefault();
@@ -81,6 +84,14 @@ Future<void> bootstrap() async {
         analytics: analytics,
       );
     } else {
+      if (const bool.fromEnvironment('EXAMCOACH_WEB_LINKS_ENABLED') &&
+          services.config.useEmulators &&
+          services.config.projectId.startsWith('demo-')) {
+        webLinkRepository = FirebaseWebLinkRepository(
+          functions: services.functions,
+          auth: services.auth,
+        );
+      }
       final connectivity = ConnectivityPlusMonitor();
       final gateway = FirebaseSyncGateway(
         functions: services.functions,
@@ -182,6 +193,7 @@ Future<void> bootstrap() async {
       authCubit: authCubit,
       aiCoachCubit: aiCoachCubit,
       subscriptionCubit: subscriptionCubit,
+      webLinkRepository: webLinkRepository,
     ),
   );
 }

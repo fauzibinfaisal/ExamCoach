@@ -121,3 +121,13 @@ screen readers belong to W5 before claiming browser support.
   special `__session` forwarding through dynamic rewrites.
 - [Set-Cookie semantics](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie):
   HttpOnly, Secure, SameSite and host scoping.
+
+## W2 implementation update (2026-09-22)
+
+DEC-015 implements emulator-only authenticated mobile link lifecycle in
+`lib/features/web_mock` and `functions/web_link_service.js`. Private Firestore
+roots hold only token digests and scoped metadata. Mobile transient secrets
+never enter SQLite, analytics, routes or Cubit states. The web application and
+Dart authority remain unchanged. See [W2 contract and boundaries](../engineering/Web_Link_Management.md).
+Full published packs now deny direct client reads; W3 must project questions
+without keys/explanations. Browser claim/cookies remain design-only until W3.

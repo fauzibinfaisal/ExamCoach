@@ -31,6 +31,18 @@ outbox. A device with no local sessions may import the authenticated account's
 remote snapshot. This prevents an inbound response from silently overwriting
 deterministic local learning evidence.
 
+## W2 web-link development
+
+W2 adds `getWebMockLinkManagement`, `createWebMockLink` and `revokeWebMockLink`
+with explicit demo-emulator gates. Private web roots are outside owner-readable
+mobile sync data. Direct reads of full `published_question_packs` documents are
+now denied because they may contain answer keys. Flutter has no direct
+Firestore client dependency on that former read rule.
+
+Follow [W2 local setup](Web_Link_Management.md) for synthetic identifiers, seed
+and tests; do not perform the live Owner Setup below for W2. No billing, actual
+Firebase project, production content publication or deployment is required.
+
 ## Owner Setup
 
 1. Create separate Firebase projects for development and production. Start with

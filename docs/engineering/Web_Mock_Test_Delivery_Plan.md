@@ -17,7 +17,7 @@ Security: [threat model](Web_Link_Security_Threat_Model.md).
 | W5 | Security/browser/accessibility/performance acceptance | HTTPS cookie topology, Firefox/WebKit, screen reader, abuse/race tests, owner deployment readiness |
 
 Progress denominator is five implementation milestones W1–W5; W0 is preparation.
-W1 completion is 1/5 = 20%, independently of the finished 12/12 mobile roadmap.
+W1–W2 completion is 2/5 = 40%, independently of the finished 12/12 mobile roadmap.
 
 ## W1 acceptance checklist
 
@@ -31,6 +31,21 @@ W1 completion is 1/5 = 20%, independently of the finished 12/12 mobile roadmap.
 - [x] Formatter, type checker/linter, tests and default web build pass.
 - [x] Flutter/Functions/emulator checks and Android debug budget still pass.
 - [x] Structured commits and [PR #16](https://github.com/fauzibinfaisal/ExamCoach/pull/16) to develop; merge only after all hosted CI passes.
+
+## W2 acceptance checklist
+
+- [x] Authenticated mobile create/copy-once/refresh/revoke, default disabled.
+- [x] Private owner/tryout/fingerprint/session binding and hash-only token storage.
+- [x] Exact server-owned 12-hour lifetime and permanent terminal states.
+- [x] Atomic same/different-request races, replay without token recovery.
+- [x] Emulator ownership, payload, rate-limit, log-canary and persistence tests.
+- [x] Direct full-pack reads closed; private Rules CRUD/list attack tests.
+- [x] Synthetic manifest explicitly separated from human-approved publication.
+- [x] Mobile async/lifecycle/privacy tests and unchanged web/backend regressions.
+
+Local setup, data model, protocol, limits and evidence are in
+[Web_Link_Management.md](Web_Link_Management.md). W2 does not implement browser
+claim or start. Hosted CI remains mandatory before integration.
 
 ## Local execution
 
@@ -57,10 +72,10 @@ existing emulator stub flags for callable tests. This prevents Firebase CLI
 Secret Manager lookups, even for a demo project. W1 adds no backend
 endpoint and does not claim to test real links on the emulators.
 
-## Future HTTP boundary (design only)
+## HTTP boundaries by milestone
 
-- W2 authenticated mobile callables: create/revoke one owned link; raw token is
-  returned once and never persisted by client or server.
+- W2 implemented authenticated mobile callables: create/revoke/management;
+  raw token returned once and never persisted by client or server.
 - W3 same-origin `POST /api/web-cbt/validate` and `POST /api/web-cbt/claim` accept
   transient capability input; `GET /api/web-cbt/session` resumes by cookie.
 - Public landing response schema: `contracts/web-cbt/link-status.v1.schema.json`.
@@ -69,9 +84,9 @@ endpoint and does not claim to test real links on the emulators.
   idempotency checks. Their payloads will be specified with implementation;
   W1 deliberately does not invent production request handlers.
 
-W2 must audit the existing public-published-content Firestore rule before web
-content distribution: a full answer-bearing pack is not a safe browser question
-projection. W4 must extend existing mobile recovery, which currently skips any
+W2 closed the public-published-content read rule and tested that full
+answer-bearing packs are denied to every client. W3 must implement a safe
+browser question projection. W4 must extend existing mobile recovery, which currently skips any
 non-empty history, through a scoped deterministic import instead of overwriting
 local data. Both are explicit work, not capabilities already implemented.
 
@@ -87,6 +102,6 @@ local data. Both are explicit work, not capabilities already implemented.
 - Complete physical-device/browser/screen-reader and release acceptance.
 
 Do not deploy, enable billing, resume iOS, change `main`, or create `1.0.0` in W1.
-The next implementation session starts W2 on a new feature branch from updated
-`develop`, reads these documents, and implements only authenticated create/revoke
-and their emulator security tests.
+After W2 integration, the next implementation session starts W3 on a new feature
+branch from updated `develop`: browser claim/session recovery and CBT workspace.
+Continue with demo emulators only.

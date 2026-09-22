@@ -1,5 +1,38 @@
 # Decision Log
 
+## DEC-015 — Emulator-only Mobile Link Lifecycle
+
+Date: 2026-09-22
+
+Status: Accepted implementation detail for W2; DEC-013 product scope unchanged.
+
+Authenticated callables create, list and revoke private links. Server time fixes
+unclaimed expiry at 12 hours. Each capability uses 32 random bytes; only a
+domain-separated SHA-256 digest is persisted. Independent random link/session
+IDs bind owner, tryout and immutable content fingerprint. Raw capability is
+returned once, carried in the URL fragment, and held only in mobile memory
+until explicit copy, navigation, backgrounding or account change. Request
+replays return metadata without recovering the secret; users can revoke and
+create a replacement after a lost response.
+
+Transactions serialize owner/tryout creation, request replay and revocation.
+One unfinished link per owner/tryout avoids silent replacement; the owner can
+explicitly revoke it. Private management returns the latest link for each of
+at most 20 tryouts. Emulator abuse budgets: 30 mutation calls/minute, 60 reads/
+minute, 6 new links/hour per UID. These are development limits, not approved
+production policy. Link records never enter the existing mobile sync tree.
+
+Both client and server require explicit emulator configuration and demo project
+IDs. A clearly labelled synthetic manifest enables local tests, without
+pretending draft content has human publication approval. Production remains
+closed. Direct Firestore reads of answer-bearing published packs are denied;
+W3 must deliver an allowlisted question projection. No browser claim, cookies,
+CBT, result import or scoring is added in W2.
+
+Mobile advances to `0.13.0+13`; SQLite remains v8 and web remains `0.1.0`.
+Details and acceptance evidence: [W2 lifecycle](engineering/Web_Link_Management.md).
+
+
 ## DEC-014 — Separate DOM Web Client, Shared Dart Learning Authority
 
 Date: 2026-09-19

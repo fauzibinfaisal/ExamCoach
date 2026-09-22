@@ -52,6 +52,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Paket ExamCoach'), findsOneWidget);
     expect(find.text('Subscriptions disabled for tests'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('web-link-card')),
+      200,
+    );
+    await tester.tap(find.byKey(const Key('web-link-card')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Link tryout belum tersedia'), findsOneWidget);
+    expect(cubit.state.hasActiveSession, isFalse);
   });
 
   testWidgets('requires confirmation before cancelling a new tryout', (

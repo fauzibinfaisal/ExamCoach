@@ -52,7 +52,7 @@ guarantee passing.
 | 12 | Product analytics, accessibility, performance, CI, and release readiness | Complete |
 
 Current position: **Step 12 of 12 complete (100% repository roadmap)**. Current
-development version is `0.12.0+12`; SQLite schema remains v8. Step 12 was
+development version is `0.13.0+13`; SQLite schema remains v8. Step 12 was
 squash-merged into `develop` through
 [PR #13](https://github.com/fauzibinfaisal/ExamCoach/pull/13) after all hosted CI
 gates passed. `main` remains release-only and unchanged.
@@ -66,16 +66,18 @@ permanently unusable after completion, expiry, or owner revocation. The first
 browser claim is session-bound so a copied link cannot silently take over the
 attempt.
 
-The W1 foundation is implemented: **W1 of W5 (20% of the web implementation
-track)**, with W0 preparation complete. Hosted checks and integration into
-`develop` are tracked in [PR #16](https://github.com/fauzibinfaisal/ExamCoach/pull/16); merge requires every CI gate to pass.
-The completed mobile roadmap remains **12/12 (100%)** at `0.12.0+12`, SQLite v8.
+W1 and W2 repository implementation is complete: **W2 of W5 (40% of the web
+implementation track)**. W1 was merged through [PR #16](https://github.com/fauzibinfaisal/ExamCoach/pull/16)
+at `8d17cfd`; W2 integration and hosted checks are tracked in
+[PR #17](https://github.com/fauzibinfaisal/ExamCoach/pull/17), requiring every CI gate to pass.
+The completed mobile roadmap remains **12/12 (100%)**. Mobile is now `0.13.0+13`,
+SQLite v8; no database migration or learning algorithm change.
 
 DEC-014 selects one repository with separate applications: mobile at root,
 React/TypeScript/Vite web at `apps/web`, and Node Functions at `functions`.
 The owner explicitly confirmed this monorepo boundary during W1. Web is `0.1.0`
-with its own dependencies, lockfile, tests, build and versioning. No mobile
-runtime or deterministic algorithm changed.
+with its own dependencies, lockfile, tests, build and versioning. W2 adds mobile
+link management through a separate repository/Cubit and authenticated callables.
 
 Delivered W1 scope:
 
@@ -89,8 +91,16 @@ Delivered W1 scope:
   tests. No browser persistence, telemetry, cookie or real token is created.
 - Separate web CI and existing Flutter/backend/emulator/Android gates.
 
-Real link creation, browser claim, question delivery, autosave, trusted scoring,
-result import and hosting remain **W2–W5, not implemented**. The Dart learning
+Delivered W2 scope (demo emulators only): authenticated create/revoke/management,
+256-bit one-time token, cryptographic hash-only private storage, server-owned
+12-hour expiry, transaction/replay/concurrency protection, per-UID development
+rate limits, copy-once transient mobile state and strict response validation.
+Full published packs now deny direct client reads. Synthetic manifests do not
+claim human-approved publication. See [W2 lifecycle](engineering/Web_Link_Management.md)
+and [Rules audit](engineering/Web_Link_Rules_Audit.json).
+
+Browser claim, question delivery, autosave, trusted scoring, result import and
+hosting remain **W3–W5, not implemented**. The Dart learning
 engine stays the single implementation; extraction and a private trusted Dart
 runtime require parity tests before W4. Current mobile empty-device recovery
 must not be mistaken for web-result import into an existing history.
@@ -99,6 +109,18 @@ Read [web architecture](architecture/Web_Platform_Architecture.md),
 [delivery plan](engineering/Web_Mock_Test_Delivery_Plan.md), and
 [threat model](engineering/Web_Link_Security_Threat_Model.md). No billing,
 Firebase project, deployment, iOS work or stable release was performed.
+
+## W2 Validation Snapshot
+
+- Dart formatting, release metadata and analyzer: PASS; Flutter tests: 73 PASS.
+- Functions tests: 23 PASS; production dependency audit: zero vulnerabilities.
+- Demo emulators: one expanded Rules suite and four callable tests PASS,
+  including token/log canaries, races, rates, ownership and permanent expiry.
+- Web regression: formatting/lint/types/build, 43 unit/component and 16 Chromium
+  tests PASS; dependency audit: zero vulnerabilities.
+- Android debug build/budget: PASS, 169,747,493 bytes; mobile `0.13.0+13`.
+- APK SHA-256: `12cf42a1698e671c9354bc0ff6489fa2b1087ba9dd2c049af2a60b8974615200`.
+- iOS, physical-device QA, live backend, browser claim and hosting remain deferred.
 
 ## W1 Validation Snapshot
 
@@ -166,16 +188,15 @@ in `engineering/Firebase_Integration.md` and
 
 ## Next Steps
 
-1. Use [PR #16](https://github.com/fauzibinfaisal/ExamCoach/pull/16) for W1 hosted validation and integration evidence; merge only
-   into `develop` after every gate passes.
-2. Start W2 on a new feature branch: authenticated mobile create/revoke,
-   server-owned 12-hour expiry and scope, hash-only token storage and emulator
-   abuse/ownership tests. Use only `demo-examcoach` and local provider stubs.
-3. Preserve DEC-013 product behavior and DEC-014 domain boundaries; do not
-   implement claim/workspace/finalization as incidental W2 additions.
-4. Owner: complete the web delivery plan's external checklist when ready for
-   hosted testing; billing and real deployment remain deferred.
-5. Keep `main` release-only. No `1.0.0` or iOS work without separate approval.
+1. Complete W2 integration into `develop` only after every hosted check passes.
+2. Start W3 from updated develop: transactional browser claim, secure same-origin
+   session/cookie and CSRF boundary, same-browser recovery and CBT workspace.
+3. Implement safe question projection from immutable human-approved content;
+   never reopen direct reads to answer-bearing published packs. Synthetic W2
+   manifests are not production publication evidence.
+4. Preserve DEC-013/014/015, and defer autosave/scoring/result import to W4.
+5. Owner external decisions remain in the delivery plan. Keep billing, live
+   deployment, iOS and main/release work outside this development scope.
 
 ## Owner/External Actions Required
 

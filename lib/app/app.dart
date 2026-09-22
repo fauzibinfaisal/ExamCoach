@@ -1,3 +1,4 @@
+import 'package:exam_coach/features/web_mock/domain/web_link_repository.dart';
 import 'package:exam_coach/app/router.dart';
 import 'package:exam_coach/core/theme/app_theme.dart';
 import 'package:exam_coach/features/ai_coach/application/ai_coach_cubit.dart';
@@ -14,9 +15,11 @@ class ExamCoachApp extends StatefulWidget {
     required this.authCubit,
     required this.aiCoachCubit,
     required this.subscriptionCubit,
+    this.webLinkRepository = const UnavailableWebLinkRepository(),
     super.key,
   });
 
+  final WebLinkRepository webLinkRepository;
   final LearningFlowCubit learningFlowCubit;
   final AuthCubit authCubit;
   final AiCoachCubit aiCoachCubit;
@@ -48,11 +51,14 @@ class _ExamCoachAppState extends State<ExamCoachApp> {
         BlocProvider.value(value: widget.aiCoachCubit),
         BlocProvider.value(value: widget.subscriptionCubit),
       ],
-      child: MaterialApp.router(
-        title: 'ExamCoach',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        routerConfig: _router,
+      child: RepositoryProvider<WebLinkRepository>.value(
+        value: widget.webLinkRepository,
+        child: MaterialApp.router(
+          title: 'ExamCoach',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          routerConfig: _router,
+        ),
       ),
     );
   }

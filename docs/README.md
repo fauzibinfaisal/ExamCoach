@@ -35,6 +35,10 @@ This folder contains the core context documents for the ExamCoach project.
 29. operations/AI_Question_Bank_Workflow.md
 30. operations/Human_Question_Review_Workflow.md
 
+W2 implementation reference: [Mobile link lifecycle](engineering/Web_Link_Management.md)
+and [Firestore audit](engineering/Web_Link_Rules_Audit.json). Read these after
+the threat model when continuing W3.
+
 ## Product Thesis
 > Optimize measurable learning improvement, not question volume.
 

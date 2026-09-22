@@ -1,3 +1,4 @@
+import 'package:exam_coach/features/web_mock/presentation/web_link_page.dart';
 import 'package:exam_coach/features/auth/presentation/account_page.dart';
 import 'package:exam_coach/features/ai_coach/presentation/ai_coach_page.dart';
 import 'package:exam_coach/features/home/presentation/home_page.dart';
@@ -13,6 +14,10 @@ GoRouter createAppRouter() {
   return GoRouter(
     routes: [
       GoRoute(path: '/', builder: (context, state) => const HomePage()),
+      GoRoute(
+        path: '/web-link',
+        builder: (context, state) => const WebLinkPage(),
+      ),
       GoRoute(
         path: '/account',
         builder: (context, state) => const AccountPage(),

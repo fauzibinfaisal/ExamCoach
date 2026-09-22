@@ -1,10 +1,10 @@
 # ExamCoach — Web-Linked Mock Test PRD
 
-Status: Product behavior accepted; W1 local foundation implemented, W2–W5 pending
+Status: Product behavior accepted; W1 foundation and W2 emulator-only link management implemented; W3–W5 pending
 
 Owner: ExamCoach product owner
 
-Last updated: 2026-09-21
+Last updated: 2026-09-22
 
 ## Purpose
 
@@ -161,15 +161,15 @@ not belong in the record.
 |---|---|---|
 | W0 | Product contract, threat model, and open decisions | Complete |
 | W1 | Web stack/monorepo decision and desktop shell | Implemented; integration tracked in [PR #16](https://github.com/fauzibinfaisal/ExamCoach/pull/16) |
-| W2 | Authenticated mobile link creation and revocation | Not started |
+| W2 | Authenticated mobile link creation and revocation | Implemented, demo emulators only |
 | W3 | Secure browser claim and computer-test workspace | Not started |
 | W4 | Autosave, reconnect recovery, submit, result sync | Not started |
 | W5 | Security, accessibility, browser, performance, and release gates | Not started |
 
 ## Acceptance Criteria
 
-- [ ] An authenticated mobile user can create a link for one tryout.
-- [ ] The displayed expiry is based on the backend timestamp plus 12 hours.
+- [x] An authenticated mobile user can create a link for one tryout (W2 emulator).
+- [x] The displayed expiry is based on the backend timestamp plus 12 hours.
 - [ ] The link opens a laptop-ready landing page without requiring mobile UI.
 - [ ] A second browser cannot silently take over an already claimed attempt.
 - [ ] Refreshing the claimed browser restores the exact current state.
@@ -202,3 +202,6 @@ login remain later owner choices. The original decision checklist is retained:
 Real hosted link creation requires a trusted online backend. The complete flow
 can be developed against Firebase Emulator Suite before billing is enabled;
 real Cloud Functions deployment remains an owner-controlled later step.
+
+W2 implementation details and local limits: [Mobile link management](../engineering/Web_Link_Management.md).
+Production publication, entitlement and hosting policy are not activated by W2.

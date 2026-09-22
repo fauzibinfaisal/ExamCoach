@@ -1,0 +1,38 @@
+{
+  "score": 5,
+  "summary": "Scoped prototype audit: no remaining Rules bypass found in emulator tests. All mutations are Admin-only; owner reads remain restricted to mobile data, web roots and answer-bearing packs deny every client. This is not production security certification or an audit of future W3-W5 endpoints.",
+  "findings": [],
+  "resolvedFinding": {
+    "check": "Public answer-bearing document reads",
+    "severity": "major",
+    "issue": "Prior published_question_packs rule exposed all fields for published status.",
+    "recommendation": "Implemented deny-all client reads; W3 must supply an allowlisted server question projection."
+  },
+  "attackOutcomes": {
+    "public list": "Denied for all web roots and full packs; guest users list denied.",
+    "unauthorized CRUD": "Guest, owner, other user and admin-claim client CRUD denied on private roots.",
+    "update bypass": "All creates and updates denied, including replacements of existing documents.",
+    "owner hijack create/update": "Forged ownerUid and role payloads denied.",
+    "immutable timestamp": "Changed expiry/creation denied to every client.",
+    "invalid types": "Numeric owner and string expiry mutations denied.",
+    "oversized fields": "200KB string denied; all client writes unconditionally denied.",
+    "required fields": "Empty create/replacement denied.",
+    "privilege escalation": "Self-assigned user admin and admin-claim private access denied.",
+    "schema pollution": "Unknown fields denied.",
+    "invalid state transition": "Client completed/active state mutations denied.",
+    "path traversal": "Foreign/session path writes denied; callable safe-ID validation rejects slash paths.",
+    "clock manipulation": "Past/future/overflow writes denied; callable TTL derived from server.",
+    "counter replay": "Client counter writes denied; Admin minute/hour counters serialized in transactions.",
+    "mixed content": "Foreign user/AI reads denied; full answer-bearing published packs denied.",
+    "orphaned subcollection": "Private orphan descendants denied; existing mobile owner-only orphan reads intentional.",
+    "query compatibility": "Mobile uses Admin-backed callables/local content; no direct full-pack reader exists.",
+    "validator pattern": "No permissive client create/update rule; strict callable validation owns Admin mutations.",
+    "storage resources": "No Storage rules or upload endpoint in this scope."
+  },
+  "evidence": [
+    "functions/test/firestore_rules.test.js",
+    "functions/test/web_link_callable_emulator.test.js",
+    "functions/test/web_link_core.test.js",
+    "test/features/web_mock/web_link_test.dart"
+  ]
+}
