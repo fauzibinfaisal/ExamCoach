@@ -1,5 +1,67 @@
 # Implementation Log
 
+## 2026-09-22 — Web CBT W2 Mobile Link Lifecycle
+
+### Objective and implementation
+
+Continued after the owner merged W1 PR #16 (`8d17cfd`). Verified clean updated
+`develop`, then created `feature/web-cbt-w2-link-lifecycle`. DEC-015 records the
+emulator-only protocol and development limits. One monorepo with separate apps
+remains the accepted structure.
+
+- Added authenticated management/create/revoke callables. Private records bind
+  owner, tryout, immutable fingerprint and random intended session.
+- 256-bit cryptographic capability returned once in a fragment URL; hash-only
+  storage, exact 12-hour server expiry and permanent terminal transitions.
+- Transactions serialize same/different-key issuance races and revocation;
+  stable request receipts recover metadata without recovering the raw token.
+- Bounded per-UID rate limits count rejected/malformed requests. Strict request
+  and response projections prevent caller authority/time/score injection.
+- Added Home → Kerjakan di laptop with safe default-disabled mode, authenticated
+  catalog, one-time clipboard copy, status refresh and explicit revoke.
+  Tokens never enter emitted state, persistence, routes, analytics or errors;
+  account/lifecycle guards discard late responses and transient copy access.
+- Closed direct reads of answer-bearing published packs; all private web roots
+  deny direct client CRUD/list including admin-claim clients. Audit inventory
+  preceded the change; attack outcomes are recorded in the Rules audit.
+- Synthetic local manifest seed never claims human-approved publication.
+  Client/server require explicit demo-emulator flags; production stays closed.
+
+### Validation
+
+- Formatter, Flutter analyzer and pre-1.0 metadata guard: PASS.
+- Full Flutter test/coverage run: 73 PASS. Added capability privacy, account/
+  lifecycle races, parser, double-tap, routing and 200% text tests. Initial widget
+  test scrolled without waiting for layout; fixed the test and reran successfully.
+- Functions unit tests: 23 PASS; production npm audit: zero vulnerabilities.
+- Node 22/Java 21 demo emulators: expanded Rules suite PASS; four callable tests
+  PASS including two W2 tests for ownership/race/replay/terminal/rate/storage.
+  Final callable run also scans emulator logs for request canaries and tokens.
+- Web regression formatter/lint/types/build: PASS; 43 unit/component tests and
+  16 Chromium/keyboard/axe/responsive tests PASS; npm audit: zero findings.
+- Android debug build and 190 MiB budget: PASS, 169,747,493 bytes.
+- APK SHA-256: `12cf42a1698e671c9354bc0ff6489fa2b1087ba9dd2c049af2a60b8974615200`.
+- Hosted CI is required before merging W2 into develop; all three existing
+  quality, web and Android jobs remain enabled.
+
+### Handoff
+
+Mobile `0.13.0+13`; SQLite v8 and web `0.1.0` unchanged. W2 implementation is
+2/5 (40%), with integration gated on hosted CI. No billing, live project,
+production deploy, iOS, scoring change or main-branch mutation.
+Next: W3 secure browser claim/session recovery and CBT workspace with safe
+question projection. W4 owns autosave, finalization and result import.
+
+Documentation updated: [lifecycle/setup](engineering/Web_Link_Management.md),
+[Rules audit](engineering/Web_Link_Rules_Audit.json), [status](PROJECT_STATUS.md),
+[decisions](DECISION_LOG.md), [index](README.md),
+[web architecture](architecture/Web_Platform_Architecture.md),
+[delivery plan](engineering/Web_Mock_Test_Delivery_Plan.md),
+[threat model](engineering/Web_Link_Security_Threat_Model.md),
+[Firebase integration](engineering/Firebase_Integration.md),
+[versioning](engineering/Release_Versioning.md),
+[Web PRD](product/Web_Linked_Mock_Test_PRD.md), and [repository README](../README.md).
+
 ## 2026-09-19–21 — Web CBT W1 Foundation
 
 ### Objective and decision

@@ -1,9 +1,10 @@
 # ExamCoach — Web Link Security Threat Model
 
 Baseline: DEC-013 product contract and DEC-014 architecture, 2026-09-19.
-W1 implements a non-authoritative UI preview only. The controls below are future
-requirements unless explicitly marked W1. A passing shell test is not evidence
-of token entropy, transactional claims, production cookies or replay defense.
+W1 implements a non-authoritative UI preview. W2 implements emulator-only
+authenticated issuance/revocation (DEC-015). Browser controls remain future work;
+passing shell or issuance tests is not evidence of transactional browser claim,
+production cookies or final-submit replay defense.
 
 ## Assets, actors and boundaries
 
@@ -59,6 +60,31 @@ keyboard access, refresh and no questions/start capability for terminal states.
 The fake has no claim/submit methods, no real credentials and no persistence.
 Production build must ignore fixture parameters and stay closed.
 
-W1 does not mitigate a real token theft because no real-token service exists.
+W1 browser previews do not validate real tokens. W2 issues real random
+capabilities only in the demo emulator; no browser exchange endpoint exists.
 Server tests, HTTPS cookie tests, production header review, independent security
 review and owner privacy/retention approval are release prerequisites in W5.
+
+## W2 evidence and residual risk
+
+- Authenticated owner-only management, immutable fingerprint binding, exact
+  server TTL, 256-bit entropy and hash-only records tested against emulators.
+- Transaction tests race same/different create requests and repeated revoke;
+  terminal create replay returns no token. Unknown/foreign revoke errors match.
+- Bounded catalogs/slots, minute-call and hourly-issuance limits; malformed
+  authenticated requests count. Production global/network/entitlement policy
+  remains unimplemented and must be reviewed before removing the W2 gate.
+- Raw capabilities never enter client state emissions, logs, analytics, routes,
+  crash error strings or app persistence. Explicit copy is user disclosure to
+  the OS; OS clipboard history is not controlled by ExamCoach.
+- Tests scan emulator logs using an invalid-request canary and generated
+  capabilities; no raw token is recorded for later verification.
+- Direct private-root CRUD/list is denied for guest, owner, other user and
+  admin-claim clients. Full answer-bearing published packs are now closed.
+- [Rules audit](Web_Link_Rules_Audit.json) records attack outcomes.
+
+W2 uses synthetic manifests only, with no entitlement or publication claim.
+The HTTP loopback origin is emulator-only, not a production transport choice.
+Receipt/terminal retention prevents replay resurrection but is not an approved
+production retention policy. Production activation, HTTPS sessions, cross-account
+network abuse controls, human-approved content and W3–W5 validation remain open.

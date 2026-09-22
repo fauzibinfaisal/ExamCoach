@@ -10,7 +10,7 @@ Tryout overview → Answer or skip → Pre-submit review → Score
 
 SQLite stores downloaded prototype content, active sessions, answers/skips, learning history, recommendations, analytics, and an idempotent sync outbox. Interrupted question and pre-submit review states can be resumed after relaunch; cancelled or expired partial sessions do not affect learning insight.
 
-Current development version: `0.12.0+12`. Major version zero is intentional
+Current development version: `0.13.0+13`. Major version zero is intentional
 while the product is unreleased. The connectivity-aware engine now has an
 optional authenticated Firebase gateway, server validation, and empty-device
 cross-device recovery. With no Firebase runtime configuration, the app remains
@@ -152,3 +152,12 @@ npm run dev --prefix apps/web
 See the [web architecture](docs/architecture/Web_Platform_Architecture.md),
 [delivery plan](docs/engineering/Web_Mock_Test_Delivery_Plan.md), and
 [threat model](docs/engineering/Web_Link_Security_Threat_Model.md).
+
+## W2 mobile-issued computer links
+
+Home → **Kerjakan di laptop** now supports authenticated create, copy-once,
+status refresh and revoke on explicitly enabled demo emulators. Raw tokens
+remain transient, with 12-hour server expiry and private hash-only records.
+Production remains disabled; browser claim and CBT start are W3 work.
+See [local setup, contract and security evidence](docs/engineering/Web_Link_Management.md).
+No billing, live Firebase project or published question pack is needed for W2.

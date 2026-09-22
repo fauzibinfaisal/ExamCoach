@@ -2,10 +2,10 @@
 
 ## Current Version
 
-The current development build is `0.12.0+12`.
+The current development build is `0.13.0+13`.
 
-- `0.12.0` is the public application version (`build-name`).
-- `12` is the monotonically increasing store/build number (`build-number`).
+- `0.13.0` is the public application version (`build-name`).
+- `13` is the monotonically increasing store/build number (`build-number`).
 - Major version zero communicates that ExamCoach is still in initial
   development and its public behavior may change before the first stable
   release.
@@ -34,6 +34,7 @@ Examples:
 | Step 10 milestone build | `0.10.0+10` |
 | Step 11 milestone build | `0.11.0+11` |
 | Step 12 milestone build | `0.12.0+12` |
+| Web W2 mobile link management | `0.13.0+13` |
 | First production release | `1.0.0+N` |
 
 The three-part numeric version is kept platform-safe for Flutter, Android, and
