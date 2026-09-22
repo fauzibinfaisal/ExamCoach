@@ -68,7 +68,8 @@ attempt.
 
 W1 and W2 repository implementation is complete: **W2 of W5 (40% of the web
 implementation track)**. W1 was merged through [PR #16](https://github.com/fauzibinfaisal/ExamCoach/pull/16)
-at `8d17cfd`; W2 integration requires every hosted CI gate to pass.
+at `8d17cfd`; W2 integration and hosted checks are tracked in
+[PR #17](https://github.com/fauzibinfaisal/ExamCoach/pull/17), requiring every CI gate to pass.
 The completed mobile roadmap remains **12/12 (100%)**. Mobile is now `0.13.0+13`,
 SQLite v8; no database migration or learning algorithm change.
 

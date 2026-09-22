@@ -41,8 +41,10 @@ remains the accepted structure.
   16 Chromium/keyboard/axe/responsive tests PASS; npm audit: zero findings.
 - Android debug build and 190 MiB budget: PASS, 169,747,493 bytes.
 - APK SHA-256: `12cf42a1698e671c9354bc0ff6489fa2b1087ba9dd2c049af2a60b8974615200`.
-- Hosted CI is required before merging W2 into develop; all three existing
-  quality, web and Android jobs remain enabled.
+- Integration and hosted CI: [PR #17](https://github.com/fauzibinfaisal/ExamCoach/pull/17).
+  All three quality, web and Android jobs must pass before merge.
+- Implementation commits: `5d82383` (backend/rules), `3ac602a` (mobile),
+  `e3c7862` (documentation).
 
 ### Handoff
 

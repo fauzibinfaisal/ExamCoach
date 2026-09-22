@@ -1,6 +1,7 @@
 # ExamCoach — W2 Mobile Link Management
 
-Status: implemented for local demo emulators only. W1 was merged through PR #16
+Status: implemented for local demo emulators only; integration and hosted checks
+are tracked in [PR #17](https://github.com/fauzibinfaisal/ExamCoach/pull/17). W1 was merged through PR #16
 at `8d17cfd`. W2 adds mobile `0.13.0+13`; SQLite v8 and web `0.1.0` are unchanged.
 See DEC-015, the [delivery plan](Web_Mock_Test_Delivery_Plan.md), and
 [security audit](Web_Link_Rules_Audit.json).
