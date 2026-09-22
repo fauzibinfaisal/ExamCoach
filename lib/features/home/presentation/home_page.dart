@@ -64,6 +64,19 @@ class HomePage extends StatelessWidget {
                 const SizedBox(height: 18),
                 const _SubscriptionCard(),
                 const SizedBox(height: 18),
+                Card(
+                  child: ListTile(
+                    key: const Key('web-link-card'),
+                    onTap: () => context.push('/web-link'),
+                    leading: const Icon(Icons.laptop),
+                    title: const Text('Kerjakan di laptop'),
+                    subtitle: const Text(
+                      'Buat dan kelola link tryout komputer.',
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                  ),
+                ),
+                const SizedBox(height: 18),
                 if (state.latestScore != null) ...[
                   _RecentResultCard(state: state),
                   const SizedBox(height: 18),
